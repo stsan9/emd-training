@@ -7,20 +7,22 @@ import numpy as np
 import pandas as pd
 import energyflow as ef
 import glob
+from pyjet import cluster,DTYPE_PTEPM
 
 ONE_HUNDRED_GEV = 100.0
 
 class GraphDataset(Dataset):
     def __init__(self, root, transform=None, pre_transform=None, 
-                 n_jets=1000, n_events_merge=100):        
+                 n_jets=1000, n_events_merge=100, n_events=1000):        
         self.n_jets = n_jets
         self.n_events_merge = n_events_merge
+        self.n_events = n_events
         super(GraphDataset, self).__init__(root, transform, pre_transform) 
 
 
     @property
     def raw_file_names(self):
-        return ['QG_jets.npz']
+        return ['events_LHCO2020_backgroundMC_Pythia.h5']
 
     @property
     def processed_file_names(self):
@@ -44,9 +46,33 @@ class GraphDataset(Dataset):
         Js = []
         R = 0.4
         for raw_path in self.raw_paths:
-            # load quark and gluon jets
-            X, y = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
-            # the jet radius for these jets
+            # X, y = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
+            df = pd.read_hdf(raw_path, stop=self.n_events)
+            all_events = df.values
+            rows = all_events.shape[0]
+            cols = all_events.shape[1]
+            X = []
+            # cluster jets and store info
+            for i in range(rows):
+                for j in range(cols // 3):
+                    if (all_events[i][j*3]>0):
+                        pseudojets_input[j]['pT'] = all_events[i][j*3]
+                        pseudojets_input[j]['eta'] = all_events[i][j*3+1]
+                        pseudojets_input[j]['phi'] = all_events[i][j*3+2]
+                sequence = cluster(pseudojets_input, R=1.0, p=-1)
+                jets = sequence.inclusive_jets()
+                for jet in jets: # for each jet get (px, py, pz, e)
+                    if jet.pt < 200 or len(jet)<=1: continue
+                    n_particles = len(jet)
+                    particles = np.zeros((n_particles, 3))
+                    # store all the particles of this jet
+                    for p, part in enumerate(jet):
+                        particles[p,:] = np.array([part.pt,
+                                                   part.eta,
+                                                   part.phi])
+                    X.append(particles)
+            X = np.array(X,dtype='O')
+            self.n_jets = len(X)
             # process jets
             Js = []
             for i,x in enumerate(X): 
