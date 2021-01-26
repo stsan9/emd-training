@@ -53,8 +53,8 @@ class GraphDataset(Dataset):
             cols = all_events.shape[1]
             X = []
             # cluster jets and store info
-            pseudojets_input = np.zeros(len([x for x in all_events[i][::3] if x > 0]), dtype=DTYPE_PTEPM)
             for i in range(rows):
+                pseudojets_input = np.zeros(len([x for x in all_events[i][::3] if x > 0]), dtype=DTYPE_PTEPM)
                 for j in range(cols // 3):
                     if (all_events[i][j*3]>0):
                         pseudojets_input[j]['pT'] = all_events[i][j*3]
