@@ -61,7 +61,7 @@ class GraphDataset(Dataset):
                         pseudojets_input[j]['eta'] = all_events[i][j*3+1]
                         pseudojets_input[j]['phi'] = all_events[i][j*3+2]
                 sequence = cluster(pseudojets_input, R=1.0, p=-1)
-                jets = sequence.inclusive_jets()
+                jets = sequence.inclusive_jets()[:2] # leading 2 jets only
                 for jet in jets: # for each jet get (px, py, pz, e)
                     if jet.pt < 200 or len(jet)<=1: continue
                     n_particles = len(jet)
