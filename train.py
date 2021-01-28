@@ -9,6 +9,8 @@ import torch.nn as nn
 import os.path as osp
 import os
 
+from torch_scatter import scatter_add
+
 plt.rcParams['figure.figsize'] = (4,4)
 plt.rcParams['figure.dpi'] = 120
 plt.rcParams['font.family'] = 'serif'
@@ -18,15 +20,32 @@ from graph_data import GraphDataset, ONE_HUNDRED_GEV
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch.utils.data import random_split
 
+import math
+
 import tqdm
+
+def deltaphi(phi1, phi2):
+    return torch.fmod(phi1 - phi2 + math.pi, 2*math.pi) - math.pi
+
+def deltaR(p1, p2):
+    deta = p1[:,1]-p2[:,1]
+    dphi = deltaphi(p1[:,2], p2[:,2])
+    return torch.sqrt(torch.square(deta)  + torch.square(dphi))
 
 def collate(items): # collate function for data loaders (transforms list of lists to list)
     l = sum(items, [])
     return Batch.from_data_list(l)
 
+def get_emd(x, edge_index, fij, u, batch):
+    R = 0.4
+    row, col = edge_index
+    dR = deltaR(x[row], x[col])
+    edge_batch = batch[row]
+    emd = scatter_add(fij*dR/R, edge_batch, dim=0) + torch.abs(u[:,0]-u[:,1])
+    return emd
 
 @torch.no_grad()
-def test(model,loader,total,batch_size):
+def test(model,loader,total,batch_size,predict_flow):
     model.eval()
     
     mse = nn.MSELoss(reduction='mean')
@@ -36,14 +55,18 @@ def test(model,loader,total,batch_size):
     for i,data in t:
         data = data.to(device)
         batch_output = model(data)
-        batch_loss_item = mse(batch_output, data.y).item()
+        if predict_flow:
+            y = data.edge_y
+        else:
+            y = data.y
+        batch_loss_item = mse(batch_output, y).item()
         sum_loss += batch_loss_item
         t.set_description("loss = %.5f" % (batch_loss_item))
         t.refresh() # to show immediately the update
 
     return sum_loss/(i+1)
 
-def train(model, optimizer, loader, total, batch_size):
+def train(model, optimizer, loader, total, batch_size, predict_flow):
     model.train()
     
     mse = nn.MSELoss(reduction='mean')
@@ -54,7 +77,11 @@ def train(model, optimizer, loader, total, batch_size):
         data = data.to(device)
         optimizer.zero_grad()
         batch_output = model(data)
-        batch_loss = mse(batch_output, data.y)
+        if predict_flow:
+            y = data.edge_y
+        else:
+            y = data.y
+        batch_loss = mse(batch_output, y)
         batch_loss.backward()
         batch_loss_item = batch_loss.item()
         t.set_description("loss = %.5f" % batch_loss_item)
@@ -115,13 +142,14 @@ if __name__ == "__main__":
                         default='models/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False, 
                         default='datasets/')
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet', 'DeeperDynamicEdgeNetPredictFlow'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
+    parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
     args = parser.parse_args()
     
     os.makedirs(args.output_dir,exist_ok=True)
@@ -140,6 +168,7 @@ if __name__ == "__main__":
     tv_frac = 0.10
     tv_num = math.ceil(fulllen*tv_frac)
     batch_size = args.batch_size
+    predict_flow = args.predict_flow
     lr = 0.001
     device = 'cuda:0'
     model_fname = args.model
@@ -173,13 +202,13 @@ if __name__ == "__main__":
     n_epochs = args.n_epochs
     patience = args.patience
     stale_epochs = 0
-    best_valid_loss = test(model, valid_loader, valid_samples, batch_size)
+    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow)
     losses = []
     val_losses = []
     for epoch in range(0, n_epochs):
-        loss = train(model, optimizer, train_loader, train_samples, batch_size)
+        loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow)
         losses.append(loss)
-        valid_loss = test(model, valid_loader, valid_samples, batch_size)
+        valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow)
         val_losses.append(valid_loss)
         print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
         print('               Validation Loss: {:.4f}'.format(valid_loss))
@@ -205,8 +234,17 @@ if __name__ == "__main__":
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
     for i, data in t:
         data.to(device)
-        ys.append(data.y.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
-        preds.append(model(data).cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
+        if predict_flow:
+            # just to double-check the formula, this gives the same answer as data.y.squeeze()
+            #true_emd = get_emd(data.x, data.edge_index, data.edge_y.squeeze(), data.u, data.batch)
+            true_emd = data.y.squeeze()
+            learn_emd = get_emd(data.x, data.edge_index, model(data).squeeze(), data.u, data.batch)
+        else:
+            true_emd = data.y
+            learn_emd = model(data)
+
+        ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
+        preds.append(learn_emd.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
     
     ys = np.concatenate(ys)   
     preds = np.concatenate(preds)
