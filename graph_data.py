@@ -64,7 +64,7 @@ class GraphDataset(Dataset):
                 jets = sequence.inclusive_jets()[:2] # leading 2 jets only
                 if len(jets) < 2: continue
                 for jet in jets: # for each jet get (px, py, pz, e)
-                    if jet.pt < 200 or len(jet)<=1: continue
+                    if jet.pt < 200 or len(jets)<=1: continue
                     n_particles = len(jet)
                     particles = np.zeros((n_particles, 3))
                     # store all the particles of this jet
@@ -74,24 +74,28 @@ class GraphDataset(Dataset):
                                                    part.phi])
                     X.append(particles)
             X = np.array(X,dtype='O')
-            self.n_jets = len(X)
             # process jets
             Js = []
             for i,x in enumerate(X): 
                 if i >= self.n_jets: break
-                # ignore padded particles and removed particle id information
-                x = x[x[:,0] > 0,:3]
+#                 # ignore padded particles and removed particle id information
+#                 x = x[:,:3]
                 # center jet according to pt-centroid
                 yphi_avg = np.average(x[:,1:3], weights=x[:,0], axis=0)
                 x[:,1:3] -= yphi_avg
                 # mask out any particles farther than R=0.4 away from center (rare)
                 x = x[np.linalg.norm(x[:,1:3], axis=1) <= R]
+                if len(x) == 0: continue
                 # add to list
                 Js.append(x)
+        self.n_jets = len(Js)
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
-        for k, (i, j) in enumerate(jetpairs):    
-            emdval = ef.emd.emd(Js[i], Js[j], R=R)/ONE_HUNDRED_GEV
+        for k, (i, j) in enumerate(jetpairs):
+            try:
+                emdval = ef.emd.emd(Js[i], Js[j], R=R)/ONE_HUNDRED_GEV
+            except:
+                import pdb; pdb.set_trace()
             Ei = np.sum(Js[i][:,0])
             Ej = np.sum(Js[j][:,0])
             jiNorm = Js[i].copy()
