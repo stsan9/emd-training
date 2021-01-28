@@ -24,9 +24,11 @@ import math
 
 import tqdm
 
+@torch.no_grad()
 def deltaphi(phi1, phi2):
     return torch.fmod(phi1 - phi2 + math.pi, 2*math.pi) - math.pi
 
+@torch.no_grad()
 def deltaR(p1, p2):
     deta = p1[:,1]-p2[:,1]
     dphi = deltaphi(p1[:,2], p2[:,2])
@@ -36,6 +38,7 @@ def collate(items): # collate function for data loaders (transforms list of list
     l = sum(items, [])
     return Batch.from_data_list(l)
 
+@torch.no_grad()
 def get_emd(x, edge_index, fij, u, batch):
     R = 0.4
     row, col = edge_index
@@ -142,7 +145,7 @@ if __name__ == "__main__":
                         default='models/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False, 
                         default='datasets/')
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet', 'DeeperDynamicEdgeNetPredictFlow'], 
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet', 'DeeperDynamicEdgeNetPredictFlow', 'DeeperDynamicEdgeNetPredictEMDFromFlow'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
@@ -232,6 +235,7 @@ if __name__ == "__main__":
     diffs = []
 
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
+    model.eval()
     for i, data in t:
         data.to(device)
         if predict_flow:
