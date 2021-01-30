@@ -24,11 +24,9 @@ import math
 
 import tqdm
 
-@torch.no_grad()
 def deltaphi(phi1, phi2):
     return torch.fmod(phi1 - phi2 + math.pi, 2*math.pi) - math.pi
 
-@torch.no_grad()
 def deltaR(p1, p2):
     deta = p1[:,1]-p2[:,1]
     dphi = deltaphi(p1[:,2], p2[:,2])
@@ -38,7 +36,6 @@ def collate(items): # collate function for data loaders (transforms list of list
     l = sum(items, [])
     return Batch.from_data_list(l)
 
-@torch.no_grad()
 def get_emd(x, edge_index, fij, u, batch):
     R = 0.4
     row, col = edge_index
@@ -48,7 +45,7 @@ def get_emd(x, edge_index, fij, u, batch):
     return emd
 
 @torch.no_grad()
-def test(model,loader,total,batch_size,predict_flow):
+def test(model, loader, total, batch_size, predict_flow, lam1, lam2):
     model.eval()
     
     mse = nn.MSELoss(reduction='mean')
@@ -57,19 +54,23 @@ def test(model,loader,total,batch_size,predict_flow):
     t = tqdm.tqdm(enumerate(loader),total=total/batch_size)
     for i,data in t:
         data = data.to(device)
-        batch_output = model(data)
         if predict_flow:
-            y = data.edge_y
+            x = data.x
+            batch_output = model(data)
+            loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
+            loss2 = mse(batch_output, data.edge_y)
+            batch_loss = lam1*loss1 + lam2*loss2
         else:
-            y = data.y
-        batch_loss_item = mse(batch_output, y).item()
+            batch_output = model(data)
+            batch_loss = mse(batch_output, data.y)
+        batch_loss_item = batch_loss.item()
         sum_loss += batch_loss_item
         t.set_description("loss = %.5f" % (batch_loss_item))
         t.refresh() # to show immediately the update
 
     return sum_loss/(i+1)
 
-def train(model, optimizer, loader, total, batch_size, predict_flow):
+def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2):
     model.train()
     
     mse = nn.MSELoss(reduction='mean')
@@ -79,12 +80,15 @@ def train(model, optimizer, loader, total, batch_size, predict_flow):
     for i,data in t:
         data = data.to(device)
         optimizer.zero_grad()
-        batch_output = model(data)
         if predict_flow:
-            y = data.edge_y
+            x = data.x
+            batch_output = model(data)
+            loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
+            loss2 = mse(batch_output, data.edge_y)
+            batch_loss = lam1*loss1 + lam2*loss2
         else:
-            y = data.y
-        batch_loss = mse(batch_output, y)
+            batch_output = model(data)
+            batch_loss = mse(batch_output, data.y)
         batch_loss.backward()
         batch_loss_item = batch_loss.item()
         t.set_description("loss = %.5f" % batch_loss_item)
@@ -153,6 +157,8 @@ if __name__ == "__main__":
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
+    parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
+    parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
     
     os.makedirs(args.output_dir,exist_ok=True)
@@ -162,7 +168,7 @@ if __name__ == "__main__":
     import models
     model_class = getattr(models, args.model)
 
-    input_dim = 3
+    input_dim = 4
     big_dim = 32
     bigger_dim = 128
     global_dim = 2
@@ -176,6 +182,8 @@ if __name__ == "__main__":
     device = 'cuda:0'
     model_fname = args.model
     modpath = osp.join(args.output_dir,model_fname+'.best.pth')
+    lam1 = args.lam1
+    lam2 = args.lam2
     
     model = model_class(input_dim=input_dim, big_dim=big_dim, bigger_dim=bigger_dim, 
                         global_dim=global_dim, output_dim=output_dim).to(device)
@@ -205,13 +213,13 @@ if __name__ == "__main__":
     n_epochs = args.n_epochs
     patience = args.patience
     stale_epochs = 0
-    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow)
+    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
     losses = []
     val_losses = []
     for epoch in range(0, n_epochs):
-        loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow)
+        loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2)
         losses.append(loss)
-        valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow)
+        valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
         val_losses.append(valid_loss)
         print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
         print('               Validation Loss: {:.4f}'.format(valid_loss))

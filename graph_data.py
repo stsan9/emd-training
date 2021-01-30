@@ -68,11 +68,16 @@ class GraphDataset(Dataset):
             G = G/ONE_HUNDRED_GEV
             Ei = np.sum(Js[i][:,0])
             Ej = np.sum(Js[j][:,0])
-            jiNorm = Js[i].copy()
-            jjNorm = Js[j].copy()
+            jiNorm = np.zeros((Js[i].shape[0],Js[i].shape[1]+1)) # add a field
+            jjNorm = np.zeros((Js[j].shape[0],Js[j].shape[1]+1)) # add a field
+            jiNorm[:,:3] = Js[i].copy()
+            jjNorm[:,:3] = Js[j].copy()
             jiNorm[:,0] = jiNorm[:,0]/Ei
             jjNorm[:,0] = jjNorm[:,0]/Ej
+            jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
+            jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
+            print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]
