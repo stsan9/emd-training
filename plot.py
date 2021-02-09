@@ -11,7 +11,7 @@ import tqdm
 
 def make_hist(data, label, save_dir):
     plt.figure(figsize=(6,4.4))
-    plt.hist(data, alpha = 0.5)
+    plt.hist(data)
     plt.legend()
     plt.xlabel(label, fontsize=16)
     plt.tight_layout()
