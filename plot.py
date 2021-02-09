@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
     args = parser.parse_args()
 
-    Path(args.output_dir).mkdir(exist_ok=True) # make a folder for these graphs
+    Path(args.save_dir).mkdir(exist_ok=True) # make a folder for these graphs
 
     if args.plt_input:
         x_input = get_x_input(args.data_dir)
