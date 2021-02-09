@@ -26,7 +26,7 @@ def get_x_input(data_dir):
 if __name__ == "__main__":
     import argparse;
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plt-input", action=store_true, help="plot pt eta phi", default=False, required=False)
+    parser.add_argument("--plt-input", action='store_true', help="plot pt eta phi", default=False, required=False)
     parser.add_argument("--data-dir", type=str, help="location of dataset", default="~/.energyflow/datasets", required=True)
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
     args = parser.parse_args()
