@@ -23,7 +23,7 @@ def get_x_input(data_dir):
     torch.cat(pt); torch.cat(eta); torch.cat(phi)
     return (pt, "pt"), (eta, "eta"), (phi, "phi")
 
-if __main__:
+if __name__ == "__main__":
     import argparse;
     parser = ArgumentParser.argparse()
     parser.add_argument("--plt-input", action=store_true, help="plot pt eta phi", default=False, required=False)
