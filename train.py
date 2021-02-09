@@ -112,9 +112,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--output-dir", type=str, help="Output directory for models and plots.", required=False, 
-                        default='models/')
+                        default='models2/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False, 
-                        default='datasets/')
+                        default='/energyflowvol/datasets/')
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
