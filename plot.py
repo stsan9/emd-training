@@ -107,6 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--plt-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
+    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=True)
     parser.add_argument("--data-dir", type=str, help="location of dataset", default="~/.energyflow/datasets", required=True)
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
@@ -137,6 +138,8 @@ if __name__ == "__main__":
         model_class = getattr(models, args.model)
         model = model_class(input_dim=input_dim, big_dim=big_dim, bigger_dim=bigger_dim, 
                             global_dim=global_dim, output_dim=output_dim).to(device)
+        model_fname = args.model
+        modpath = osp.join(args.model_dir,model_fname+'.best.pth')
         try:
             if torch.cuda.is_available():
                 model.load_state_dict(torch.load(modpath, map_location=torch.device('cuda')))
@@ -151,5 +154,4 @@ if __name__ == "__main__":
             return Batch.from_data_list(l)
         _, _, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
 
-        model_fname = args.model
         eval_nn(model, test_dataset, model_fname, args.save_dir)
