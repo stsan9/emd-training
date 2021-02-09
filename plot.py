@@ -38,4 +38,4 @@ if __name__ == "__main__":
         x_input = get_x_input(args.data_dir)
         for d in x_input:
             data = d[0]; label = d[1]
-            make_hist(data, label, args.output_dir)
+            make_hist(data, label, args.save_dir)
