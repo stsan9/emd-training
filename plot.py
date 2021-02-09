@@ -18,9 +18,9 @@ def get_x_input(data_dir):
     gdata = GraphDataset(root=data_dir, n_jets=100, n_events_merge=1)
     pt = []; eta = []; phi = []
     for i, d in enumerate(gdata):
-        pt.append(gdata[0].x[:,0])
-        eta.append(gdata[0].x[:,1])
-        phi.append(gdata[0].x[:,2])
+        pt.append(d[0].x[:,0])
+        eta.append(d[0].x[:,1])
+        phi.append(d[0].x[:,2])
     torch.cat(pt); torch.cat(eta); torch.cat(phi)
     return (pt, "pt"), (eta, "eta"), (phi, "phi")
 
