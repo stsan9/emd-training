@@ -107,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--plt-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
-    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=True)
+    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=False)
     parser.add_argument("--data-dir", type=str, help="location of dataset", default="~/.energyflow/datasets", required=True)
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
