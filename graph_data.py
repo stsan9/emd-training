@@ -111,10 +111,7 @@ class GraphDataset(Dataset):
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):
-            try:
-                emdval = ef.emd.emd(Js[i], Js[j], R=R)/ONE_HUNDRED_GEV
-            except:
-                import pdb; pdb.set_trace()
+            emdval = ef.emd.emd(Js[i], Js[j], R=R)/ONE_HUNDRED_GEV
             Ei = np.sum(Js[i][:,0])
             Ej = np.sum(Js[j][:,0])
             jiNorm = Js[i].copy()

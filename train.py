@@ -117,6 +117,7 @@ if __name__ == "__main__":
                         default='/energyflowvol/datasets/')
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
+    parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
