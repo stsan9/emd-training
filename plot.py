@@ -123,7 +123,7 @@ if __name__ == "__main__":
         x_input = get_x_input(gdata)
         for d in x_input:
             data = d[0]; label = d[1]
-            make_hist(data, label, args.save_dir)
+            make_hist(data.numpy(), label, args.save_dir)
 
     if args.plt_nn_eval:
         # load in model
