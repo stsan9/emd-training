@@ -24,7 +24,9 @@ def get_x_input(gdata):
         pt.append(d[0].x[:,0])
         eta.append(d[0].x[:,1])
         phi.append(d[0].x[:,2])
-    torch.cat(pt); torch.cat(eta); torch.cat(phi)
+    pt = torch.cat(pt)
+    eta = torch.cat(eta)
+    phi = torch.cat(phi)
     return (pt, "pt"), (eta, "eta"), (phi, "phi")
 
 @torch.no_grad()
