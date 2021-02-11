@@ -63,23 +63,34 @@ class GraphDataset(Dataset):
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):    
-            emdval = ef.emd.emd(Js[i], Js[j], R=R)/ONE_HUNDRED_GEV
+            emdval, G = ef.emd.emd(Js[i], Js[j], R=R, return_flow=True)
+            emdval = emdval/ONE_HUNDRED_GEV
+            G = G/ONE_HUNDRED_GEV
             Ei = np.sum(Js[i][:,0])
             Ej = np.sum(Js[j][:,0])
-            jiNorm = Js[i].copy()
-            jjNorm = Js[j].copy()
+            jiNorm = np.zeros((Js[i].shape[0],Js[i].shape[1]+1)) # add a field
+            jjNorm = np.zeros((Js[j].shape[0],Js[j].shape[1]+1)) # add a field
+            jiNorm[:,:3] = Js[i].copy()
+            jjNorm[:,:3] = Js[j].copy()
             jiNorm[:,0] = jiNorm[:,0]/Ei
             jjNorm[:,0] = jjNorm[:,0]/Ej
+            jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
+            jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
+            print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]
             edge_index = torch.tensor(pairs, dtype=torch.long)
-            edge_index=edge_index.t().contiguous()
+            edge_index = edge_index.t().contiguous()
             u = torch.tensor([[Ei/ONE_HUNDRED_GEV, Ej/ONE_HUNDRED_GEV]], dtype=torch.float)
+            edge_y = torch.tensor([[G[m,n-nparticles_i] for m, n in pairs]], dtype=torch.float)
+            edge_y = edge_y.t().contiguous()
+
             x = torch.tensor(jetpair, dtype=torch.float)
             y = torch.tensor([[emdval]], dtype=torch.float)
-            data = Data(x=x, edge_index=edge_index, y=y, u=u)
+            
+            data = Data(x=x, edge_index=edge_index, y=y, u=u, edge_y=edge_y)
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
             if self.pre_transform is not None:
