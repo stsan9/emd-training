@@ -18,6 +18,13 @@ def make_hist(data, label, save_dir):
     plt.savefig(osp.join(save_dir, label+'.pdf'))
     plt.close()
 
+def get_y_output(gdata):
+    y = []
+    for d in gdata:
+        y.append(d[0].y[0])
+    y = torch.cat(y)
+    return y
+
 def get_x_input(gdata):
     pt = []; eta = []; phi = []
     for d in gdata:
