@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import os.path as osp
 import os
+import sys
 
 plt.rcParams['figure.figsize'] = (4,4)
 plt.rcParams['figure.dpi'] = 120
@@ -134,9 +135,9 @@ if __name__ == "__main__":
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
-    print("Loading data...")
+    print("Loading data...",file=sys.stderr)
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
-    print("Data loaded.")
+    print("Data loaded.",file=sys.stderr)
 
     import importlib
     import models
@@ -164,9 +165,9 @@ if __name__ == "__main__":
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cuda')))
         else:
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
-        print("Using trained model")
+        print("Using trained model",file=sys.stderr)
     except:
-        print("Creating a new model")
+        print("Creating a new model",file=sys.stderr)
 
     train_dataset, valid_dataset, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
 
