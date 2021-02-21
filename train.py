@@ -125,7 +125,15 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     args = parser.parse_args()
     
+    # create output directory
     os.makedirs(args.output_dir,exist_ok=True)
+
+    # log arguments
+    import logging
+    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', encoding='utf-8', level=logging.INFO)
+    for arg, value in sorted(vars(args).items()):
+            logging.info("Argument %s: %r", arg, value)
+
     print("Loading data...")
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
     print("Data loaded.")
