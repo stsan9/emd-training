@@ -126,7 +126,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     os.makedirs(args.output_dir,exist_ok=True)
-    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge)
+    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
 
     import importlib
     import models
