@@ -131,13 +131,13 @@ if __name__ == "__main__":
 
     # log arguments
     import logging
-    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', level=logging.INFO)
+    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', level=logging.DEBUG)
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
-    print("Loading data...",file=sys.stderr)
+    logging.debug("Loading data...")
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
-    print("Data loaded.",file=sys.stderr)
+    logging.debug("Data loaded.")
 
     import importlib
     import models
@@ -165,9 +165,9 @@ if __name__ == "__main__":
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cuda')))
         else:
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
-        print("Using trained model",file=sys.stderr)
+        logging.debug("Using trained model")
     except:
-        print("Creating a new model",file=sys.stderr)
+        logging.debug("Creating a new model")
 
     train_dataset, valid_dataset, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
 
