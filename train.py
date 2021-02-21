@@ -126,7 +126,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     os.makedirs(args.output_dir,exist_ok=True)
+    print("Loading data...")
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
+    print("Data loaded.")
 
     import importlib
     import models
@@ -151,12 +153,12 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
     try:
         if torch.cuda.is_available():
-            print("Using GPU")
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cuda')))
         else:
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
+        print("Using trained model")
     except:
-        pass # new model
+        print("Creating a new model")
 
     train_dataset, valid_dataset, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
 
