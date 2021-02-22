@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import os.path as osp
 import os
+import sys
 
 from torch_scatter import scatter_add
 
@@ -144,13 +145,14 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--output-dir", type=str, help="Output directory for models and plots.", required=False, 
-                        default='models/')
-    parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False, 
-                        default='datasets/')
+                        default='models2/')
+    parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False,
+                        default='/energyflowvol/datasets/')
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet', 'DeeperDynamicEdgeNetPredictFlow', 'DeeperDynamicEdgeNetPredictEMDFromFlow'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
+    parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
@@ -160,9 +162,19 @@ if __name__ == "__main__":
     parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
     parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
-    
+
+    # create output directory
     os.makedirs(args.output_dir,exist_ok=True)
-    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge)
+
+    # log arguments
+    import logging
+    logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
+    for arg, value in sorted(vars(args).items()):
+            logging.info("Argument %s: %r", arg, value)
+
+    logging.debug("Loading data...")
+    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
+    logging.debug("Data loaded.")
 
     import importlib
     import models
@@ -190,12 +202,12 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
     try:
         if torch.cuda.is_available():
-            print("Using GPU")
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cuda')))
         else:
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
+        logging.debug("Using trained model")
     except:
-        pass # new model
+        logging.debug("Creating a new model")
 
     train_dataset, valid_dataset, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
 

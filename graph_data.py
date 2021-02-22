@@ -4,23 +4,25 @@ from torch_geometric.data import Dataset, Data
 import itertools
 import tables
 import numpy as np
-import pandas as pd
 import energyflow as ef
 import glob
+from process_util import jet_particles
 
 ONE_HUNDRED_GEV = 100.0
 
 class GraphDataset(Dataset):
     def __init__(self, root, transform=None, pre_transform=None, 
-                 n_jets=1000, n_events_merge=100):        
+                 n_jets=1000, n_events_merge=100, n_events=1000, lhco=False):
         self.n_jets = n_jets
         self.n_events_merge = n_events_merge
+        self.n_events = n_events
+        self.lhco = lhco
         super(GraphDataset, self).__init__(root, transform, pre_transform) 
 
 
     @property
     def raw_file_names(self):
-        return ['QG_jets.npz']
+        return ['events_LHCO2020_backgroundMC_Pythia.h5']
 
     @property
     def processed_file_names(self):
@@ -39,27 +41,32 @@ class GraphDataset(Dataset):
         # Download to `self.raw_dir`.
         pass
 
-
     def process(self):
         Js = []
         R = 0.4
         for raw_path in self.raw_paths:
-            # load quark and gluon jets
-            X, y = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
-            # the jet radius for these jets
-            # process jets
+            if self.lhco:
+                print("Loading LHCO Dataset")
+                # process: lhco events -> jet clusters -> particle format
+                X = jet_particles(raw_path, self.n_events)
+            else:
+                print("Loading QG Dataset")
+                X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
             Js = []
             for i,x in enumerate(X): 
                 if i >= self.n_jets: break
-                # ignore padded particles and removed particle id information
-                x = x[x[:,0] > 0,:3]
+                if not self.lhco:
+                    # ignore padded particles and removed particle id information
+                    x = x[x[:,0] > 0,:3]
                 # center jet according to pt-centroid
                 yphi_avg = np.average(x[:,1:3], weights=x[:,0], axis=0)
                 x[:,1:3] -= yphi_avg
                 # mask out any particles farther than R=0.4 away from center (rare)
                 x = x[np.linalg.norm(x[:,1:3], axis=1) <= R]
                 # add to list
+                if len(x) == 0: continue
                 Js.append(x)
+        self.n_jets = len(Js)
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):    
