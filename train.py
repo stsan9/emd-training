@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
     # log arguments
     import logging
-    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
+    logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
