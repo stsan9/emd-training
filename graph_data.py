@@ -41,16 +41,16 @@ class GraphDataset(Dataset):
         # Download to `self.raw_dir`.
         pass
 
-
     def process(self):
         Js = []
         R = 0.4
         for raw_path in self.raw_paths:
             if self.lhco:
+                print("Loading LHCO Dataset")
                 # process: lhco events -> jet clusters -> particle format
                 X = jet_particles(raw_path, self.n_events)
             else:
-                # load quark and gluon jets
+                print("Loading QG Dataset")
                 X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
             Js = []
             for i,x in enumerate(X): 

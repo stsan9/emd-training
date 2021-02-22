@@ -26,8 +26,8 @@ def jet_particles(raw_path, n_events):
             # store all the particles of this jet
             for p, part in enumerate(jet):
                 particles[p,:] = np.array([part.pt,
-                                            part.eta,
-                                            part.phi])
+                                           part.eta,
+                                           part.phi])
             X.append(particles)
     X = np.array(X,dtype='O')
     return X

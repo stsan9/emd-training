@@ -111,7 +111,7 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--output-dir", type=str, help="Output directory for models and plots.", required=False, 
                         default='models2/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False, 
@@ -125,13 +125,13 @@ if __name__ == "__main__":
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     args = parser.parse_args()
-    
+
     # create output directory
     os.makedirs(args.output_dir,exist_ok=True)
 
     # log arguments
     import logging
-    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', level=logging.DEBUG)
+    logging.basicConfig(filename=osp.join(args.output_dir, "args.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
