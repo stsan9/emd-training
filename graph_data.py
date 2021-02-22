@@ -4,10 +4,9 @@ from torch_geometric.data import Dataset, Data
 import itertools
 import tables
 import numpy as np
-import pandas as pd
 import energyflow as ef
 import glob
-from pyjet import cluster,DTYPE_PTEPM
+from process_util import jet_particles
 
 ONE_HUNDRED_GEV = 100.0
 
@@ -48,65 +47,25 @@ class GraphDataset(Dataset):
         R = 0.4
         for raw_path in self.raw_paths:
             if self.lhco:
-                # X, y = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
-                df = pd.read_hdf(raw_path, stop=self.n_events)
-                all_events = df.values
-                rows = all_events.shape[0]
-                cols = all_events.shape[1]
-                X = []
-                # cluster jets and store info
-                for i in range(rows):
-                    pseudojets_input = np.zeros(len([x for x in all_events[i][::3] if x > 0]), dtype=DTYPE_PTEPM)
-                    for j in range(cols // 3):
-                        if (all_events[i][j*3]>0):
-                            pseudojets_input[j]['pT'] = all_events[i][j*3]
-                            pseudojets_input[j]['eta'] = all_events[i][j*3+1]
-                            pseudojets_input[j]['phi'] = all_events[i][j*3+2]
-                    sequence = cluster(pseudojets_input, R=1.0, p=-1)
-                    jets = sequence.inclusive_jets()[:2] # leading 2 jets only
-                    if len(jets) < 2: continue
-                    for jet in jets: # for each jet get (px, py, pz, e)
-                        if jet.pt < 200 or len(jets)<=1: continue
-                        n_particles = len(jet)
-                        particles = np.zeros((n_particles, 3))
-                        # store all the particles of this jet
-                        for p, part in enumerate(jet):
-                            particles[p,:] = np.array([part.pt,
-                                                       part.eta,
-                                                       part.phi])
-                        X.append(particles)
-                X = np.array(X,dtype='O')
-                # process jets
-                Js = []
-                for i,x in enumerate(X): 
-                    if i >= self.n_jets: break
-    #                 # ignore padded particles and removed particle id information
-    #                 x = x[:,:3]
-                    # center jet according to pt-centroid
-                    yphi_avg = np.average(x[:,1:3], weights=x[:,0], axis=0)
-                    x[:,1:3] -= yphi_avg
-                    # mask out any particles farther than R=0.4 away from center (rare)
-                    x = x[np.linalg.norm(x[:,1:3], axis=1) <= R]
-                    if len(x) == 0: continue
-                    # add to list
-                    Js.append(x)
+                # process: lhco events -> jet clusters -> particle format
+                X = jet_particles(raw_path, self.n_events)
             else:
                 # load quark and gluon jets
-                X, y = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
-                # the jet radius for these jets
-                # process jets
-                Js = []
-                for i,x in enumerate(X): 
-                    if i >= self.n_jets: break
+                X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
+            Js = []
+            for i,x in enumerate(X): 
+                if i >= self.n_jets: break
+                if not self.lhco:
                     # ignore padded particles and removed particle id information
                     x = x[x[:,0] > 0,:3]
-                    # center jet according to pt-centroid
-                    yphi_avg = np.average(x[:,1:3], weights=x[:,0], axis=0)
-                    x[:,1:3] -= yphi_avg
-                    # mask out any particles farther than R=0.4 away from center (rare)
-                    x = x[np.linalg.norm(x[:,1:3], axis=1) <= R]
-                    # add to list
-                    Js.append(x)
+                # center jet according to pt-centroid
+                yphi_avg = np.average(x[:,1:3], weights=x[:,0], axis=0)
+                x[:,1:3] -= yphi_avg
+                # mask out any particles farther than R=0.4 away from center (rare)
+                x = x[np.linalg.norm(x[:,1:3], axis=1) <= R]
+                # add to list
+                if len(x) == 0: continue
+                Js.append(x)
         self.n_jets = len(Js)
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
