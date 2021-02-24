@@ -74,6 +74,8 @@ class GraphDataset(Dataset):
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):    
+            if k == len(jetpairs):
+                print(f'Generated: {k}/{len(jetpairs)}')
             emdval, G = ef.emd.emd(Js[i], Js[j], R=R, return_flow=True)
             emdval = emdval/ONE_HUNDRED_GEV
             G = G/ONE_HUNDRED_GEV
@@ -88,7 +90,7 @@ class GraphDataset(Dataset):
             jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
             jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
-            print(jetpair.shape)
+            # print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]
