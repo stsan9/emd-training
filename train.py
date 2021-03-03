@@ -2,28 +2,26 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-
 import energyflow as ef
 import torch
 import torch.nn as nn
 import os.path as osp
 import os
 import sys
+import tqdm
+import random
+import logging
 
 from torch_scatter import scatter_add
+from graph_data import GraphDataset, ONE_HUNDRED_GEV
+from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
+from torch.utils.data import random_split
 
 plt.rcParams['figure.figsize'] = (4,4)
 plt.rcParams['figure.dpi'] = 120
 plt.rcParams['font.family'] = 'serif'
-
-from graph_data import GraphDataset, ONE_HUNDRED_GEV
-
-from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
-from torch.utils.data import random_split
-
-import math
-
-import tqdm
+torch.manual_seed(0)
+np.random.seed(0)
 
 def deltaphi(phi1, phi2):
     return torch.fmod(phi1 - phi2 + math.pi, 2*math.pi) - math.pi
@@ -167,27 +165,19 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir,exist_ok=True)
 
     # log arguments
-    import logging
     logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
-    logging.debug("Loading data...")
-    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
-    logging.debug("Data loaded.")
-
+    # create model
     import importlib
     import models
     model_class = getattr(models, args.model)
-
     input_dim = 4
     big_dim = 32
     bigger_dim = 128
     global_dim = 2
     output_dim = 1
-    fulllen = len(gdata)
-    tv_frac = 0.10
-    tv_num = math.ceil(fulllen*tv_frac)
     batch_size = args.batch_size
     predict_flow = args.predict_flow
     lr = 0.001
@@ -196,7 +186,6 @@ if __name__ == "__main__":
     modpath = osp.join(args.output_dir,model_fname+'.best.pth')
     lam1 = args.lam1
     lam2 = args.lam2
-    
     model = model_class(input_dim=input_dim, big_dim=big_dim, bigger_dim=bigger_dim, 
                         global_dim=global_dim, output_dim=output_dim).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
@@ -209,14 +198,29 @@ if __name__ == "__main__":
     except:
         logging.debug("Creating a new model")
 
-    train_dataset, valid_dataset, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
+    # load data
+    logging.debug("Loading dataset...")
+    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
+    logging.debug("Dataset loaded.")
+
+    logging.debug("Preparing data to shuffle...")
+    bag = []
+    for g in gdata:
+        bag = bag + g
+    random.shuffle(bag)
+    logging.debug("Shuffled.")
+
+    # split dataset
+    fulllen = len(bag)
+    train_len = int(0.8 * fulllen)
+    tv_len = int(0.10 * fulllen)
+    train_dataset = bag[:train_len]
+    valid_dataset = bag[train_len:train_len + tv_len]
+    test_dataset  = bag[train_len + tv_len:]
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, shuffle=True)
-    train_loader.collate_fn = collate
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-    valid_loader.collate_fn = collate
     test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-    test_loader.collate_fn = collate
 
     train_samples = len(train_dataset)
     valid_samples = len(valid_dataset)
@@ -247,7 +251,6 @@ if __name__ == "__main__":
         if stale_epochs >= patience:
             print('Early stopping after %i stale epochs'%patience)
             break
-
 
     model.load_state_dict(torch.load(modpath))
     ys = []
