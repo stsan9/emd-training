@@ -45,16 +45,16 @@ class GraphDataset(Dataset):
         Js = []
         R = 0.4
         for raw_path in self.raw_paths:
+            # load jet-particles dataset
             if self.lhco:
                 print("Loading LHCO Dataset")
-                # process: lhco events -> jet clusters -> particle format
                 X = jet_particles(raw_path, self.n_events)
             else:
                 print("Loading QG Dataset")
                 X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
             Js = []
-            for i,x in enumerate(X): 
-                if i >= self.n_jets: break
+            jet_ctr = 0
+            for x in X: 
                 if not self.lhco:
                     # ignore padded particles and removed particle id information
                     x = x[x[:,0] > 0,:3]
@@ -66,10 +66,16 @@ class GraphDataset(Dataset):
                 # add to list
                 if len(x) == 0: continue
                 Js.append(x)
-        self.n_jets = len(Js)
+                # stop when n_jets stored
+                jet_ctr += 1
+                if jet_ctr == self.n_jets: break
+
+        # calc emd between all jet pairs and save datum
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):    
+            if k == len(jetpairs) // 20:
+                print(f'Generated: {k}/{len(jetpairs)}')
             emdval, G = ef.emd.emd(Js[i], Js[j], R=R, return_flow=True)
             emdval = emdval/ONE_HUNDRED_GEV
             G = G/ONE_HUNDRED_GEV
@@ -84,7 +90,7 @@ class GraphDataset(Dataset):
             jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
             jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
-            print(jetpair.shape)
+            # print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]
