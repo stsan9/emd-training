@@ -74,7 +74,7 @@ class GraphDataset(Dataset):
         jetpairs = [[i, j] for (i, j) in itertools.product(range(self.n_jets),range(self.n_jets))]
         datas = []
         for k, (i, j) in enumerate(jetpairs):    
-            if k == len(jetpairs) // 20:
+            if k % (len(jetpairs) // 20) == 0:
                 print(f'Generated: {k}/{len(jetpairs)}')
             emdval, G = ef.emd.emd(Js[i], Js[j], R=R, return_flow=True)
             emdval = emdval/ONE_HUNDRED_GEV
