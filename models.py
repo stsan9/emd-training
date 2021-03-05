@@ -184,3 +184,16 @@ class DeeperDynamicEdgeNetPredictFlow(nn.Module):
         return self.outnn(torch.cat([data.x[row],data.x[col]],dim=-1))#.squeeze(-1)
 
 
+class SymmetricDDEdgeNet(nn.Module):
+    def __init__(self, input_dim=3, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
+        super(SymmetricDDEdgeNet, self).__init__()
+        self.EdgeNet = DeeperDynamicEdgeNet(input_dim, big_dim, bigger_dim, global_dim, output_dim, k, aggr) 
+
+    def forward(self, data):
+        data_1 = data.x
+        data_2 = data.x
+        # TODO: format input as [j1 j2]
+        emd_1 = self.EdgeNet(data)
+        # TODO: swap jet order from ^
+        emd_2 = self.EdgeNet(data)
+        return (emd_1 + emd_2) / 2
