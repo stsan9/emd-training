@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import math
 from pyjet import cluster,DTYPE_PTEPM
 
 def jet_particles(raw_path, n_events):
@@ -31,3 +32,18 @@ def jet_particles(raw_path, n_events):
             X.append(particles)
     X = np.array(X,dtype='O')
     return X
+    
+def match(data):
+    """
+    combine symmetrical pairs to prevent leaking across sets during split
+    """
+    n_jets = int(math.sqrt(len(data)))
+    pairs = []
+    for r in range(n_jets):
+        for c in range(r, n_jets):
+            r_idx = n_jets * r
+            if c == r:
+                pairs.append(data[r_idx + c])
+            else:
+                pairs.append([data[r_idx + c], data[c * n_jets + r]])
+    return pairs
