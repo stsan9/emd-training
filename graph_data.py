@@ -52,6 +52,8 @@ class GraphDataset(Dataset):
             else:
                 print("Loading QG Dataset")
                 X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
+            
+            # clean and store list of jets as particles (px,py,pz)
             Js = []
             jet_ctr = 0
             for x in X: 
@@ -90,7 +92,6 @@ class GraphDataset(Dataset):
             jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
             jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
-            # print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]

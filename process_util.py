@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import math
+import torch
 from pyjet import cluster,DTYPE_PTEPM
 
 def jet_particles(raw_path, n_events):
@@ -43,7 +44,13 @@ def match(data):
         for c in range(r, n_jets):
             r_idx = n_jets * r
             if c == r:
-                pairs.append(data[r_idx + c])
+                pairs.append([data[r_idx + c]])
+                if data[r_idx + c].y.item() != 0:
+                    exit("Matching failed: EMD non-zero")
             else:
-                pairs.append([data[r_idx + c], data[c * n_jets + r]])
+                d1 = data[r_idx + c]
+                d2 = data[c * n_jets + r]
+                pairs.append([d1, d2])
+                if d1.y.item() != d2.y.item():
+                    exit("Mismatch")
     return pairs
