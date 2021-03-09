@@ -197,5 +197,5 @@ class SymmetricDDEdgeNet(nn.Module):
         data_2 = copy.deepcopy(data)
         data_2.x[:,-1] *= -1
 
-        emd_2 = self.EdgeNet(data2)
+        emd_2 = self.EdgeNet(data_2)
         return (emd_1 + emd_2) / 2
