@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -190,10 +191,11 @@ class SymmetricDDEdgeNet(nn.Module):
         self.EdgeNet = DeeperDynamicEdgeNet(input_dim, big_dim, bigger_dim, global_dim, output_dim, k, aggr) 
 
     def forward(self, data):
-        data_1 = data.x
-        data_2 = data.x
-        # TODO: format input as [j1 j2]
         emd_1 = self.EdgeNet(data)
-        # TODO: swap jet order from ^
-        emd_2 = self.EdgeNet(data)
+
+        # inverse jet order
+        data_2 = copy.deepcopy(data)
+        data_2.x[:,-1] *= -1
+
+        emd_2 = self.EdgeNet(data2)
         return (emd_1 + emd_2) / 2
