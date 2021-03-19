@@ -191,11 +191,11 @@ class SymmetricDDEdgeNet(nn.Module):
         self.EdgeNet = DeeperDynamicEdgeNet(input_dim, big_dim, bigger_dim, global_dim, output_dim, k, aggr) 
 
     def forward(self, data):
-        emd_1 = self.EdgeNet(data)
-
-        # inverse jet order
+        # dual copies with different orderings
+        data_1 = copy.deepcopy(data)
         data_2 = copy.deepcopy(data)
         data_2.x[:,-1] *= -1
 
+        emd_1 = self.EdgeNet(data_1)
         emd_2 = self.EdgeNet(data_2)
         return (emd_1 + emd_2) / 2
