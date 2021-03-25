@@ -7,6 +7,8 @@ import numpy as np
 import energyflow as ef
 import glob
 from process_util import jet_particles
+from natsort import natsorted
+from sys import exit
 
 ONE_HUNDRED_GEV = 100.0
 
@@ -32,7 +34,7 @@ class GraphDataset(Dataset):
         proc_list = glob.glob(osp.join(self.processed_dir, 'data_*.pt'))
         n_files = int(self.n_jets*self.n_jets/self.n_events_merge)
         return_list = list(map(osp.basename, proc_list))[:n_files]
-        return return_list
+        return natsorted(return_list)
 
     def __len__(self):
         return len(self.processed_file_names)
