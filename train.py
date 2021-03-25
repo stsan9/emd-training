@@ -100,6 +100,9 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2)
 
 def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
     
+    # largest y-value rounded to nearest 100
+    max_range = round(np.max(ys),-2)
+    
     diffs = (preds-ys)
     rel_diffs = diffs[ys>0]/ys[ys>0]
     
@@ -113,8 +116,8 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
     fig.savefig(osp.join(output_dir,model_fname+'_loss.png'))
     
     fig, ax = plt.subplots(figsize =(5, 5)) 
-    plt.hist(ys, bins=np.linspace(0, 300, 101),label='True', alpha=0.5)
-    plt.hist(preds, bins=np.linspace(0, 300, 101),label = 'Pred.', alpha=0.5)
+    plt.hist(ys, bins=np.linspace(0, max_range, 101),label='True', alpha=0.5)
+    plt.hist(preds, bins=np.linspace(0, max_range, 101),label = 'Pred.', alpha=0.5)
     plt.legend()
     ax.set_xlabel('EMD [GeV]') 
     fig.savefig(osp.join(output_dir,model_fname+'_EMD.pdf'))
@@ -122,19 +125,19 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
     
     fig, ax = plt.subplots(figsize =(5, 5)) 
     plt.hist(diffs, bins=np.linspace(-200, 200, 101))
-    ax.set_xlabel('EMD diff. [GeV]')  
+    ax.set_xlabel(f'EMD diff. [GeV], std: {"{:.3e}".format(np.std(diffs))}, mean: {"{:.3e}".format(np.mean(diffs))}')  
     fig.savefig(osp.join(output_dir,model_fname+'_EMD_diff.pdf'))
     fig.savefig(osp.join(output_dir,model_fname+'_EMD_diff.png'))
     
     fig, ax = plt.subplots(figsize =(5, 5)) 
     plt.hist(rel_diffs, bins=np.linspace(-1, 1, 101))
-    ax.set_xlabel('EMD rel. diff.')  
+    ax.set_xlabel(f'EMD rel. diff., std: {"{:.3e}".format(np.std(rel_diffs))}, mean: {"{:.3e}".format(np.mean(rel_diffs))}')  
     fig.savefig(osp.join(output_dir,model_fname+'_EMD_rel_diff.pdf'))
     fig.savefig(osp.join(output_dir,model_fname+'_EMD_rel_diff.png'))
     
     fig, ax = plt.subplots(figsize =(5, 5)) 
-    x_bins = np.linspace(0, 300, 101)
-    y_bins = np.linspace(0, 300, 101)
+    x_bins = np.linspace(0, max_range, 101)
+    y_bins = np.linspace(0, max_range, 101)
     plt.hist2d(ys, preds, bins=[x_bins,y_bins])
     ax.set_xlabel('True EMD [GeV]')  
     ax.set_ylabel('Pred. EMD [GeV]')
