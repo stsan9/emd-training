@@ -34,9 +34,9 @@ def jet_particles(raw_path, n_events):
     X = np.array(X,dtype='O')
     return X
     
-def match(data):
+def remove_dupes(data):
     """
-    combine symmetrical pairs to prevent leaking across sets during split
+    remove duplicate data with alternative jet orderings
     """
     n_jets = int(math.sqrt(len(data)))
     pairs = []
@@ -44,13 +44,13 @@ def match(data):
         for c in range(r, n_jets):
             r_idx = n_jets * r
             if c == r:
-                pairs.append([data[r_idx + c]])
+                pairs.append(data[r_idx + c])
                 if data[r_idx + c].y.item() != 0:
-                    exit("Matching failed: EMD non-zero")
+                    exit("EMD non-zero")
             else:
                 d1 = data[r_idx + c]
                 d2 = data[c * n_jets + r]
-                pairs.append([d1, d2])
+                pairs.append(d1)
                 if d1.y.item() != d2.y.item():
-                    exit("Mismatch")
+                    exit("Unexpected non-dupe")
     return pairs

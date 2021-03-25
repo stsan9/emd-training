@@ -14,7 +14,7 @@ import logging
 
 from torch_scatter import scatter_add
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
-from process_util import match
+from process_util import remove_dupes
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch.utils.data import random_split
 
@@ -149,7 +149,8 @@ if __name__ == "__main__":
                         default='models2/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False,
                         default='/energyflowvol/datasets/')
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet', 'DeeperDynamicEdgeNetPredictFlow', 'DeeperDynamicEdgeNetPredictEMDFromFlow'], 
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
@@ -158,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
-    parser.add_argument("--match", action="store_true", help="keep symmetrical inputs together in train/val/test split", required=False)
+    parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
     parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
     parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
@@ -208,9 +209,9 @@ if __name__ == "__main__":
     logging.debug("Preparing data to shuffle...")
     bag = []
     for g in gdata:
-        bag = bag + g
-    if args.match:
-        bag = match(bag)
+        bag += g
+    if args.remove_dupes or args.model == 'SymmetricDDEdgeNet':
+        bag = remove_dupes(bag)
     random.shuffle(bag)
     logging.debug("Shuffled.")
 
@@ -221,19 +222,13 @@ if __name__ == "__main__":
     train_dataset = bag[:train_len]
     valid_dataset = bag[train_len:train_len + tv_len]
     test_dataset  = bag[train_len + tv_len:]
-
-    if args.match:
-        train_dataset = sum(train_dataset, [])
-        valid_dataset = sum(valid_dataset, [])
-        test_dataset  = sum(test_dataset, [])
+    train_samples = len(train_dataset)
+    valid_samples = len(valid_dataset)
+    test_samples = len(test_dataset)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-
-    train_samples = len(train_dataset)
-    valid_samples = len(valid_dataset)
-    test_samples = len(test_dataset)
 
     # train loop
     n_epochs = args.n_epochs
@@ -262,11 +257,15 @@ if __name__ == "__main__":
             print('Early stopping after %i stale epochs'%patience)
             break
 
+    # test model
     model.load_state_dict(torch.load(modpath))
     ys = []
     preds = []
     diffs = []
-
+    if args.model == 'SymmetricDDEdgeNet':
+        # evaluate using non-symmetric forward pass
+        model = model.EdgeNet
+    
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
     model.eval()
     for i, data in t:
