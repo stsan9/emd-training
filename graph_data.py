@@ -55,7 +55,7 @@ class GraphDataset(Dataset):
                 print("Loading QG Dataset")
                 X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
             
-            # clean and store list of jets as particles (px,py,pz)
+            # clean and store list of jets as particles (pt, eta, phi)
             Js = []
             jet_ctr = 0
             for x in X: 
