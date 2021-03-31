@@ -306,6 +306,7 @@ if __name__ == "__main__":
         make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
     else:
         ys = np.concatenate(ys)   
+        preds = np.concatenate(preds)
         np.save(osp.join(args.output_dir,model_fname+'_ys.npy'),ys)
         np.save(osp.join(args.output_dir,model_fname+'_preds.npy'),preds)
         make_plots(preds, ys, None, None, model_fname, args.output_dir)
