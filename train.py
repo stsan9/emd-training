@@ -106,7 +106,7 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
     diffs = (preds-ys)
     rel_diffs = diffs[ys>0]/ys[ys>0]
     
-    if losses is not None:
+    if losses is not None and val_losses is not None:
         fig, ax = plt.subplots(figsize =(5, 5)) 
         plt.plot(losses, marker='o',label='Training', alpha=0.5)
         plt.plot(val_losses, marker='o',label = 'Validation', alpha=0.5)
