@@ -106,14 +106,15 @@ def make_plots(preds, ys, losses, val_losses, model_fname, output_dir):
     diffs = (preds-ys)
     rel_diffs = diffs[ys>0]/ys[ys>0]
     
-    fig, ax = plt.subplots(figsize =(5, 5)) 
-    plt.plot(losses, marker='o',label='Training', alpha=0.5)
-    plt.plot(val_losses, marker='o',label = 'Validation', alpha=0.5)
-    plt.legend()
-    ax.set_ylabel('Loss') 
-    ax.set_xlabel('Epoch') 
-    fig.savefig(osp.join(output_dir,model_fname+'_loss.pdf'))
-    fig.savefig(osp.join(output_dir,model_fname+'_loss.png'))
+    if losses is not None:
+        fig, ax = plt.subplots(figsize =(5, 5)) 
+        plt.plot(losses, marker='o',label='Training', alpha=0.5)
+        plt.plot(val_losses, marker='o',label = 'Validation', alpha=0.5)
+        plt.legend()
+        ax.set_ylabel('Loss') 
+        ax.set_xlabel('Epoch') 
+        fig.savefig(osp.join(output_dir,model_fname+'_loss.pdf'))
+        fig.savefig(osp.join(output_dir,model_fname+'_loss.png'))
     
     fig, ax = plt.subplots(figsize =(5, 5)) 
     plt.hist(ys, bins=np.linspace(0, max_range, 101),label='True', alpha=0.5)
@@ -163,6 +164,8 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
     parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
+    parser.add_argument("--lhco-back", action="store_true", help="Start from tail end of lhco data to get unused dataset", required=False)
+    parser.add_argument("--eval-only", action="store_true", help="Only perform evaluation on model (using whole input dir)", required=False)
     parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
     parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
@@ -206,7 +209,7 @@ if __name__ == "__main__":
 
     # load data
     logging.debug("Loading dataset...")
-    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
+    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco, lhco_back=args.lhco_back)
     logging.debug("Dataset loaded.")
 
     logging.debug("Preparing data to shuffle...")
@@ -215,50 +218,56 @@ if __name__ == "__main__":
         bag += g
     if args.remove_dupes or args.model == 'SymmetricDDEdgeNet':
         bag = remove_dupes(bag)
-    random.shuffle(bag)
+    if not args.eval_only:
+        random.shuffle(bag)
     logging.debug("Shuffled.")
 
-    # split dataset
-    fulllen = len(bag)
-    train_len = int(0.8 * fulllen)
-    tv_len = int(0.10 * fulllen)
-    train_dataset = bag[:train_len]
-    valid_dataset = bag[train_len:train_len + tv_len]
-    test_dataset  = bag[train_len + tv_len:]
-    train_samples = len(train_dataset)
-    valid_samples = len(valid_dataset)
-    test_samples = len(test_dataset)
+    if not args.eval_only:
+        # split dataset
+        fulllen = len(bag)
+        train_len = int(0.8 * fulllen)
+        tv_len = int(0.10 * fulllen)
+        train_dataset = bag[:train_len]
+        valid_dataset = bag[train_len:train_len + tv_len]
+        test_dataset  = bag[train_len + tv_len:]
+        train_samples = len(train_dataset)
+        valid_samples = len(valid_dataset)
+        test_samples = len(test_dataset)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, shuffle=True)
+        valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
 
-    # train loop
-    n_epochs = args.n_epochs
-    patience = args.patience
-    stale_epochs = 0
-    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
-    losses = []
-    val_losses = []
-    for epoch in range(0, n_epochs):
-        loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2)
-        losses.append(loss)
-        valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
-        val_losses.append(valid_loss)
-        print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
-        print('               Validation Loss: {:.4f}'.format(valid_loss))
+        # train loop
+        n_epochs = args.n_epochs
+        patience = args.patience
+        stale_epochs = 0
+        best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
+        losses = []
+        val_losses = []
+        for epoch in range(0, n_epochs):
+            loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2)
+            losses.append(loss)
+            valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
+            val_losses.append(valid_loss)
+            print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
+            print('               Validation Loss: {:.4f}'.format(valid_loss))
 
-        if valid_loss < best_valid_loss:
-            best_valid_loss = valid_loss
-            print('New best model saved to:',modpath)
-            torch.save(model.state_dict(),modpath)
-            stale_epochs = 0
-        else:
-            print('Stale epoch')
-            stale_epochs += 1
-        if stale_epochs >= patience:
-            print('Early stopping after %i stale epochs'%patience)
-            break
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                print('New best model saved to:',modpath)
+                torch.save(model.state_dict(),modpath)
+                stale_epochs = 0
+            else:
+                print('Stale epoch')
+                stale_epochs += 1
+            if stale_epochs >= patience:
+                print('Early stopping after %i stale epochs'%patience)
+                break
+    else:
+        test_dataset  = bag
+        test_samples = len(test_dataset)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
 
     # test model
     model.load_state_dict(torch.load(modpath))
@@ -285,13 +294,18 @@ if __name__ == "__main__":
         ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
         preds.append(learn_emd.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
     
-    ys = np.concatenate(ys)   
-    preds = np.concatenate(preds)
-    losses = np.array(losses)
-    val_losses = np.array(val_losses)
-    np.save(osp.join(args.output_dir,model_fname+'_ys.npy'),ys)
-    np.save(osp.join(args.output_dir,model_fname+'_preds.npy'),preds)
-    np.save(osp.join(args.output_dir,model_fname+'_losses.npy'),losses)
-    np.save(osp.join(args.output_dir,model_fname+'_val_losses.npy'),val_losses)
-    make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
-    
+    if not args.eval_only:
+        ys = np.concatenate(ys)   
+        preds = np.concatenate(preds)
+        losses = np.array(losses)
+        val_losses = np.array(val_losses)
+        np.save(osp.join(args.output_dir,model_fname+'_ys.npy'),ys)
+        np.save(osp.join(args.output_dir,model_fname+'_preds.npy'),preds)
+        np.save(osp.join(args.output_dir,model_fname+'_losses.npy'),losses)
+        np.save(osp.join(args.output_dir,model_fname+'_val_losses.npy'),val_losses)
+        make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
+    else:
+        ys = np.concatenate(ys)   
+        np.save(osp.join(args.output_dir,model_fname+'_ys.npy'),ys)
+        np.save(osp.join(args.output_dir,model_fname+'_preds.npy'),preds)
+        make_plots(preds, ys, None, None, model_fname, args.output_dir)

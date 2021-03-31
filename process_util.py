@@ -4,8 +4,12 @@ import math
 import torch
 from pyjet import cluster,DTYPE_PTEPM
 
-def jet_particles(raw_path, n_events):
-    df = pd.read_hdf(raw_path, stop=n_events)
+def jet_particles(raw_path, n_events, back):
+    if back:
+        start = 1e6 - n_events
+        df = pd.read_hdf(raw_path, start=start)
+    else:
+        df = pd.read_hdf(raw_path, stop=n_events)
     all_events = df.values
     rows = all_events.shape[0]
     cols = all_events.shape[1]
