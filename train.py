@@ -219,7 +219,7 @@ if __name__ == "__main__":
     if args.remove_dupes or args.model == 'SymmetricDDEdgeNet':
         bag = remove_dupes(bag)
     if not args.eval_only:
-        random.shuffle(bag)
+        random.Random(0).shuffle(bag)
     logging.debug("Shuffled.")
 
     if not args.eval_only:
