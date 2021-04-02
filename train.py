@@ -307,8 +307,10 @@ if __name__ == "__main__":
         np.save(osp.join(args.output_dir,model_fname+'_val_losses.npy'),val_losses)
         make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
     else:
+        eval_dir = osp.join(args.output_dir, 'eval')
+        os.makedirs(eval_dir,exist_ok=True)
         ys = np.concatenate(ys)   
         preds = np.concatenate(preds)
-        np.save(osp.join(args.output_dir,model_fname+'_ys.npy'),ys)
-        np.save(osp.join(args.output_dir,model_fname+'_preds.npy'),preds)
-        make_plots(preds, ys, None, None, model_fname, args.output_dir)
+        np.save(osp.join(eval_dir,model_fname+'_ys.npy'),ys)
+        np.save(osp.join(eval_dir,model_fname+'_preds.npy'),preds)
+        make_plots(preds, ys, None, None, model_fname, eval_dir)
