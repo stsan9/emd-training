@@ -65,7 +65,6 @@ if __name__ == "__main__":
     global_dim = 2
     output_dim = 1
     batch_size = args.batch_size
-    predict_flow = args.predict_flow
     device = 'cuda:0'
     model_fname = args.model
     modpath = osp.join(args.output_dir,model_fname+'.best.pth')
@@ -78,6 +77,9 @@ if __name__ == "__main__":
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
     except:
         exit("Evaluating on non-existent model")
+
+    if args.model == 'SymmetricDDEdgeNet':
+        model = model.EdgeNet
 
     # process dataset and create loaders
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
