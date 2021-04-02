@@ -205,6 +205,8 @@ if __name__ == "__main__":
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
         logging.debug("Using trained model")
     except:
+        if args.eval_only:
+            exit("Evaluating on non-existent model")
         logging.debug("Creating a new model")
 
     # load data
