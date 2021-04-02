@@ -58,3 +58,23 @@ def remove_dupes(data):
                 if d1.y.item() != d2.y.item():
                     exit("Unexpected non-dupe")
     return pairs
+
+def pair_dupes(data):
+    """
+    pair duplicate data with alternative jet orderings
+    """
+    n_jets = int(math.sqrt(len(data)))
+    pairs = []
+    for r in range(n_jets):
+        for c in range(r, n_jets):
+            r_idx = n_jets * r
+            if c == r:
+                if data[r_idx + c].y.item() != 0:
+                    exit("EMD non-zero")
+            else:
+                d1 = data[r_idx + c]
+                d2 = data[c * n_jets + r]
+                pairs.append([d1, d2])
+                if d1.y.item() != d2.y.item():
+                    exit("Unexpected non-dupe")
+    return pairs
