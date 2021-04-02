@@ -61,7 +61,7 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2):
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
-        elif model == models.SymmetricDDEdgeNet:
+        elif symm_loss:
             batch_output, emd_1, emd_2 = model(data)
             batch_loss = mse(batch_output, data.y) + mse(emd_1, emd_2)
         else:
@@ -74,7 +74,7 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2):
 
     return sum_loss/(i+1)
 
-def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2):
+def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
     model.train()
     
     mse = nn.MSELoss(reduction='mean')
@@ -90,7 +90,7 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2)
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
-        elif model == models.SymmetricDDEdgeNet:
+        elif symm_loss:
             batch_output, emd_1, emd_2 = model(data)
             batch_loss = mse(batch_output, data.y) + mse(emd_1, emd_2)
         else:
@@ -249,13 +249,13 @@ if __name__ == "__main__":
         n_epochs = args.n_epochs
         patience = args.patience
         stale_epochs = 0
-        best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
+        best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
         losses = []
         val_losses = []
         for epoch in range(0, n_epochs):
-            loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2)
+            loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
             losses.append(loss)
-            valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2)
+            valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
             val_losses.append(valid_loss)
             print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
             print('               Validation Loss: {:.4f}'.format(valid_loss))
