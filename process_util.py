@@ -54,7 +54,7 @@ def remove_dupes(data):
             else:
                 d1 = data[r_idx + c]
                 d2 = data[c * n_jets + r]
-                pairs.append(d1)
+                pairs.append(d2)
                 if d1.y.item() != d2.y.item():
                     exit("Unexpected non-dupe")
     return pairs
