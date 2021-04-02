@@ -198,4 +198,5 @@ class SymmetricDDEdgeNet(nn.Module):
 
         emd_1 = self.EdgeNet(data_1)
         emd_2 = self.EdgeNet(data_2)
-        return (emd_1 + emd_2) / 2
+        loss = (emd_1 + emd_2) / 2
+        return loss, emd_1, emd_2

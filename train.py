@@ -11,6 +11,7 @@ import sys
 import tqdm
 import random
 import logging
+import models
 
 from torch_scatter import scatter_add
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
@@ -86,6 +87,8 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2)
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
+        elif model == models.SymmetricDDEdgeNet:
+            pass
         else:
             batch_output = model(data)
             batch_loss = mse(batch_output, data.y)
@@ -179,8 +182,6 @@ if __name__ == "__main__":
             logging.info("Argument %s: %r", arg, value)
 
     # create model
-    import importlib
-    import models
     model_class = getattr(models, args.model)
     input_dim = 4
     big_dim = 32
