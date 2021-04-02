@@ -54,7 +54,6 @@ if __name__ == "__main__":
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
-    parser.add_argument("--match-dupes", action="store_true", help="match dupes in data with different jet ordering", required=False)
 
     # define model
     import models
@@ -77,7 +76,7 @@ if __name__ == "__main__":
         else:
             model.load_state_dict(torch.load(modpath, map_location=torch.device('cpu')))
     except:
-        exit("Evaluating on non-existent model"
+        exit("Evaluating on non-existent model")
 
     # process dataset and create loaders
     gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
