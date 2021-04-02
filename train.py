@@ -46,7 +46,7 @@ def get_emd(x, edge_index, fij, u, batch):
     return emd
 
 @torch.no_grad()
-def test(model, loader, total, batch_size, predict_flow, lam1, lam2):
+def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
     model.eval()
     
     mse = nn.MSELoss(reduction='mean')
