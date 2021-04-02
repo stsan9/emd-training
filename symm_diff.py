@@ -54,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
+    args = parser.parse_args()
 
     # define model
     import models
