@@ -26,8 +26,8 @@ def get_emds(model, loader, length, batch_size):
 
         ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
         preds.append(learn_emd.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
-    ys = np.array(ys)
-    preds = np.array(preds)
+    ys = np.concatenate(ys)   
+    preds = np.concatenate(preds)
     return ys, preds
 
 def make_symm_diff_plots(pred_diffs, avg_diffs, model_fname, output_dir):
