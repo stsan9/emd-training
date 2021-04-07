@@ -309,7 +309,9 @@ if __name__ == "__main__":
         np.save(osp.join(args.output_dir,model_fname+'_val_losses.npy'),val_losses)
         make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
     else:
-        eval_folder = 'eval' if args.eval_only else 'eval_2'
+        eval_folder = 'eval_new_set' if args.eval_only else 'eval_standard'
+        if not args.remove_dupes:
+            eval_folder += '_dupes'
         eval_dir = osp.join(args.output_dir, eval_folder)
         os.makedirs(eval_dir,exist_ok=True)
         ys = np.concatenate(ys)   
