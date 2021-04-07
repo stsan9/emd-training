@@ -61,9 +61,6 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
-        elif symm_loss:
-            batch_output, emd_1, emd_2 = model(data)
-            batch_loss = mse(batch_output, data.y) + mse(emd_1, emd_2)
         else:
             batch_output = model(data)
             batch_loss = mse(batch_output, data.y)
@@ -90,9 +87,6 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2,
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
-        elif symm_loss:
-            batch_output, emd_1, emd_2 = model(data)
-            batch_loss = mse(batch_output, data.y) + mse(emd_1, emd_2)
         else:
             batch_output = model(data)
             batch_loss = mse(batch_output, data.y)
