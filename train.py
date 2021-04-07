@@ -167,12 +167,17 @@ if __name__ == "__main__":
     parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
     parser.add_argument("--lhco-back", action="store_true", help="Start from tail end of lhco data to get unused dataset", required=False)
     parser.add_argument("--eval-only", action="store_true", help="Only perform evaluation on model (using whole input dir)", required=False)
+    parser.add_argument("--eval-standard", action="store_true", help="Only perform evaluation on model (using test set from og run)", required=False)
     parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
     parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
 
     # create output directory
     os.makedirs(args.output_dir,exist_ok=True)
+
+    # basic checks
+    if args.eval_standard == True == args.eval_only:
+        exit("--eval-standard and --eval-only args both true")
 
     # log arguments
     logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
@@ -223,7 +228,7 @@ if __name__ == "__main__":
         random.Random(0).shuffle(bag)
     logging.debug("Shuffled.")
 
-    if not args.eval_only:
+    if not args.eval_only or args.eval_standard:
         # split dataset
         fulllen = len(bag)
         train_len = int(0.8 * fulllen)
@@ -239,32 +244,33 @@ if __name__ == "__main__":
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
 
-        # train loop
-        n_epochs = args.n_epochs
-        patience = args.patience
-        stale_epochs = 0
-        best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
-        losses = []
-        val_losses = []
-        for epoch in range(0, n_epochs):
-            loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
-            losses.append(loss)
-            valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
-            val_losses.append(valid_loss)
-            print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
-            print('               Validation Loss: {:.4f}'.format(valid_loss))
+        if args.eval_standard:
+            # train loop
+            n_epochs = args.n_epochs
+            patience = args.patience
+            stale_epochs = 0
+            best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+            losses = []
+            val_losses = []
+            for epoch in range(0, n_epochs):
+                loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+                losses.append(loss)
+                valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+                val_losses.append(valid_loss)
+                print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
+                print('               Validation Loss: {:.4f}'.format(valid_loss))
 
-            if valid_loss < best_valid_loss:
-                best_valid_loss = valid_loss
-                print('New best model saved to:',modpath)
-                torch.save(model.state_dict(),modpath)
-                stale_epochs = 0
-            else:
-                print('Stale epoch')
-                stale_epochs += 1
-            if stale_epochs >= patience:
-                print('Early stopping after %i stale epochs'%patience)
-                break
+                if valid_loss < best_valid_loss:
+                    best_valid_loss = valid_loss
+                    print('New best model saved to:',modpath)
+                    torch.save(model.state_dict(),modpath)
+                    stale_epochs = 0
+                else:
+                    print('Stale epoch')
+                    stale_epochs += 1
+                if stale_epochs >= patience:
+                    print('Early stopping after %i stale epochs'%patience)
+                    break
     else:
         test_dataset  = bag
         test_samples = len(test_dataset)
@@ -275,9 +281,6 @@ if __name__ == "__main__":
     ys = []
     preds = []
     diffs = []
-    # if args.model == 'SymmetricDDEdgeNet':
-    #     # evaluate using non-symmetric forward pass
-    #     model = model.EdgeNet
     
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
     model.eval()
@@ -295,7 +298,7 @@ if __name__ == "__main__":
         ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
         preds.append(learn_emd.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
     
-    if not args.eval_only:
+    if not args.eval_only and not args.eval_standard:
         ys = np.concatenate(ys)   
         preds = np.concatenate(preds)
         losses = np.array(losses)
@@ -306,7 +309,8 @@ if __name__ == "__main__":
         np.save(osp.join(args.output_dir,model_fname+'_val_losses.npy'),val_losses)
         make_plots(preds, ys, losses, val_losses, model_fname, args.output_dir)
     else:
-        eval_dir = osp.join(args.output_dir, 'eval')
+        eval_folder = 'eval' if args.eval_only else 'eval_2'
+        eval_dir = osp.join(args.output_dir, eval_folder)
         os.makedirs(eval_dir,exist_ok=True)
         ys = np.concatenate(ys)   
         preds = np.concatenate(preds)
