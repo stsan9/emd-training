@@ -281,9 +281,9 @@ if __name__ == "__main__":
     ys = []
     preds = []
     diffs = []
-    if args.model == 'SymmetricDDEdgeNet':
-        # evaluate using non-symmetric forward pass
-        model = model.EdgeNet
+    # if args.model == 'SymmetricDDEdgeNet':
+    #     # evaluate using non-symmetric forward pass
+    #     model = model.EdgeNet
     
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
     model.eval()
