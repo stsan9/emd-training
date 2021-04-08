@@ -242,7 +242,7 @@ if __name__ == "__main__":
         logging.debug("Creating a new model")
 
     # get appropriate loss function if needed
-    if args.symm_loss is None:
+    if args.symm_loss is not None:
         symm_loss = getattr(losses, args.symm_loss)
 
     # load data
