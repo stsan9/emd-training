@@ -121,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
+    parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
     args = parser.parse_args()
 
     Path(args.save_dir).mkdir(exist_ok=True) # make a folder for these graphs
@@ -162,5 +163,11 @@ if __name__ == "__main__":
             l = sum(items, [])
             return Batch.from_data_list(l)
         _, _, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
+        
+        # save folder
+        eval_folder = 'eval'
+        if not args.remove_dupes:
+            eval_folder += '_dupes'
+        eval_dir = osp.join(args.save_dir, eval_folder)
 
         eval_nn(model, test_dataset, model_fname, args.save_dir)
