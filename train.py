@@ -87,6 +87,9 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2,
     
     mse = nn.MSELoss(reduction='mean')
 
+    print(f'losses in train: {losses}')
+    print(f'symm_loss in train: {symm_loss}')
+
     sum_loss = 0.
     t = tqdm.tqdm(enumerate(loader),total=total/batch_size)
     for i,data in t:
