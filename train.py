@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
                                             'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
-    parser.add_argument("--symm-loss", choices=['symm_loss_1, symm_loss_2'], help="special loss; else use standard mse", required=False, default=None)
+    parser.add_argument("--symm-loss", choices=['symm_loss_1', 'symm_loss_2'], help="special loss; else use standard mse", required=False, default=None)
     parser.add_argument("--symm-lam", type=float, help="lambda term for symm_loss_2", default=None, required=False)
     parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
@@ -260,7 +260,6 @@ if __name__ == "__main__":
         bag = pair_dupes(bag)
     if not args.eval_only:
         random.Random(0).shuffle(bag)
-        
     logging.debug("Shuffled.")
 
     if not args.eval_only or args.eval_standard:
