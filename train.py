@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False,
                         default='/energyflowvol/datasets/')
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
-                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','y'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--symm-loss", choices=['symm_loss_1', 'symm_loss_2'], help="special loss; else use standard mse", required=False, default=None)
     parser.add_argument("--symm-lam", type=float, help="lambda term for symm_loss_2", default=None, required=False)
@@ -332,6 +332,8 @@ if __name__ == "__main__":
         else:
             true_emd = data.y
             learn_emd = model(data)
+            if args.model == "SymmetricDDEdgeNet":
+                learn_emd = learn_emd[0]    # toss unecessary terms
 
         ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
         preds.append(learn_emd.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
