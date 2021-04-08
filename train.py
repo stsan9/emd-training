@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False,
                         default='/energyflowvol/datasets/')
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
-                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','y'], 
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     parser.add_argument("--symm-loss", choices=['symm_loss_1', 'symm_loss_2'], help="special loss; else use standard mse", required=False, default=None)
     parser.add_argument("--symm-lam", type=float, help="lambda term for symm_loss_2", default=None, required=False)
