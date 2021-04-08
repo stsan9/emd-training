@@ -12,6 +12,7 @@ import tqdm
 import random
 import logging
 import models
+import losses
 
 from torch_scatter import scatter_add
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
@@ -46,7 +47,7 @@ def get_emd(x, edge_index, fij, u, batch):
     return emd
 
 @torch.no_grad()
-def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
+def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss=None, symm_lam=None):
     model.eval()
     
     mse = nn.MSELoss(reduction='mean')
@@ -61,6 +62,16 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
+        elif symm_loss is not None:
+            batch_output = model(data)
+            if symm_loss == losses.symm_loss_1:
+                # loss = mse(y, pred) + mse(emd1, emd2)
+                batch_output, emd_1, emd_2 = batch_output
+                batch_loss = symm_loss(batch_output, data.y, emd_1, emd_2)
+            if symm_loss == losses.symm_loss_2:
+                # loss = mse(y, pred) + lam * pred^2
+                batch_output, _, _ = batch_output
+                batch_loss = symm_loss(batch_output, data.y, symm_lam if symm_lam is not None else 0.001)
         else:
             batch_output = model(data)
             batch_loss = mse(batch_output, data.y)
@@ -71,7 +82,7 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
 
     return sum_loss/(i+1)
 
-def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss):
+def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss=None, symm_lam=None):
     model.train()
     
     mse = nn.MSELoss(reduction='mean')
@@ -87,6 +98,16 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2,
             loss1 = mse(get_emd(x, data.edge_index, batch_output.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
             loss2 = mse(batch_output, data.edge_y)
             batch_loss = lam1*loss1 + lam2*loss2
+        elif symm_loss is not None:
+            batch_output = model(data)
+            if symm_loss == losses.symm_loss_1:
+                # loss = mse(y, pred) + mse(emd1, emd2)
+                batch_output, emd_1, emd_2 = batch_output
+                batch_loss = symm_loss(batch_output, data.y, emd_1, emd_2)
+            if symm_loss == losses.symm_loss_2:
+                # loss = mse(y, pred) + lam * pred^2
+                batch_output, _, _ = batch_output
+                batch_loss = symm_loss(batch_output, data.y, symm_lam if symm_lam is not None else 0.001)
         else:
             batch_output = model(data)
             batch_loss = mse(batch_output, data.y)
@@ -157,6 +178,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
                                             'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
+    parser.add_argument("--symm-loss", choices=['symm_loss_1, symm_loss_2'], help="special loss; else use standard mse", required=False, default=None)
+    parser.add_argument("--symm-lam", type=float, help="lambda term for symm_loss_2", default=None, required=False)
     parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
     parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
@@ -178,6 +201,8 @@ if __name__ == "__main__":
     # basic checks
     if args.eval_standard == True == args.eval_only:
         exit("--eval-standard and --eval-only args both true")
+    if (args.symm_loss is not losses.symm_loss_2) and (args.symm_lam is not None):
+        exit("--symm-lam is for use with symm_loss_2")
 
     # log arguments
     logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
@@ -212,6 +237,10 @@ if __name__ == "__main__":
         if args.eval_only:
             exit("Evaluating on non-existent model")
         logging.debug("Creating a new model")
+
+    # get appropriate loss function if needed
+    if args.symm_loss is None:
+        symm_loss = getattr(losses, args.symm_loss)
 
     # load data
     logging.debug("Loading dataset...")
@@ -249,13 +278,13 @@ if __name__ == "__main__":
             n_epochs = args.n_epochs
             patience = args.patience
             stale_epochs = 0
-            best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+            best_valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, symm_loss, args.symm_lam)
             losses = []
             val_losses = []
             for epoch in range(0, n_epochs):
-                loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+                loss = train(model, optimizer, train_loader, train_samples, batch_size, predict_flow, lam1, lam2, symm_loss, args.symm_lam)
                 losses.append(loss)
-                valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, args.model=="SymmetricDDEdgeNet")
+                valid_loss = test(model, valid_loader, valid_samples, batch_size, predict_flow, lam1, lam2, symm_loss, args.symm_lam)
                 val_losses.append(valid_loss)
                 print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
                 print('               Validation Loss: {:.4f}'.format(valid_loss))
