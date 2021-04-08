@@ -8,5 +8,5 @@ def symm_loss_1(preds, ys, emd_1, emd_2):
 
 def symm_loss_2(preds, ys, lam=0.001):
     mse = nn.MSELoss(reduction='mean')
-    batch_loss = mse(ys, preds) + lam * torch.pow(preds, 2)
+    batch_loss = mse(ys, preds) + lam * torch.mean(torch.pow(preds, 2))
     return batch_loss
