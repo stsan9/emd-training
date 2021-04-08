@@ -188,7 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
     parser.add_argument("--remove-dupes", action="store_true", help="remove data that had the same jet pair in different order (leave one ver)", required=False, default=False)
-    parser.add_argument("--pair-dupes", action="store_true", help="pair data that use the same jet pair", required=False, default=True)
+    parser.add_argument("--pair-dupes", action="store_true", help="pair data that use the same jet pair", required=False, default=False)
     parser.add_argument("--lhco-back", action="store_true", help="Start from tail end of lhco data to get unused dataset", required=False)
     parser.add_argument("--eval-only", action="store_true", help="Only perform evaluation on model (using whole input dir)", required=False)
     parser.add_argument("--eval-standard", action="store_true", help="Only perform evaluation on model (using one-tenth of input dir)", required=False)
@@ -200,10 +200,12 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir,exist_ok=True)
 
     # basic checks
-    if args.eval_standard == True == args.eval_only:
+    if args.eval_standard and args.eval_only:
         exit("--eval-standard and --eval-only args both true")
     if (args.symm_loss is not losses.symm_loss_2) and (args.symm_lam is not None):
         exit("--symm-lam is for use with symm_loss_2")
+    if args.remove_dupes and args.pair_dupes:
+        exit("can't remove dupes and pair dupes at the same time")
 
     # log arguments
     logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
@@ -258,6 +260,7 @@ if __name__ == "__main__":
         bag = pair_dupes(bag)
     if not args.eval_only:
         random.Random(0).shuffle(bag)
+        
     logging.debug("Shuffled.")
 
     if not args.eval_only or args.eval_standard:
@@ -268,6 +271,10 @@ if __name__ == "__main__":
         train_dataset = bag[:train_len]
         valid_dataset = bag[train_len:train_len + tv_len]
         test_dataset  = bag[train_len + tv_len:]
+        if args.pair_dupes:
+            train_dataset = sum(train_dataset, [])
+            valid_dataset = sum(valid_dataset, [])
+            test_dataset  = sum(test_dataset, [])
         train_samples = len(train_dataset)
         valid_samples = len(valid_dataset)
         test_samples = len(test_dataset)
