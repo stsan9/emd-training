@@ -244,6 +244,8 @@ if __name__ == "__main__":
     # get appropriate loss function if needed
     if args.symm_loss is not None:
         symm_loss = getattr(loss_ftns, args.symm_loss)
+    else:
+        symm_loss = None
 
     # load data
     logging.debug("Loading dataset...")
