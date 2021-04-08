@@ -12,7 +12,7 @@ import tqdm
 import random
 import logging
 import models
-import losses
+import loss_ftns
 
 from torch_scatter import scatter_add
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
@@ -64,11 +64,11 @@ def test(model, loader, total, batch_size, predict_flow, lam1, lam2, symm_loss=N
             batch_loss = lam1*loss1 + lam2*loss2
         elif symm_loss is not None:
             batch_output = model(data)
-            if symm_loss == losses.symm_loss_1:
+            if symm_loss == loss_ftns.symm_loss_1:
                 # loss = mse(y, pred) + mse(emd1, emd2)
                 batch_output, emd_1, emd_2 = batch_output
                 batch_loss = symm_loss(batch_output, data.y, emd_1, emd_2)
-            if symm_loss == losses.symm_loss_2:
+            if symm_loss == loss_ftns.symm_loss_2:
                 # loss = mse(y, pred) + lam * pred^2
                 batch_output, _, _ = batch_output
                 batch_loss = symm_loss(batch_output, data.y, symm_lam if symm_lam is not None else 0.001)
@@ -87,9 +87,6 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2,
     
     mse = nn.MSELoss(reduction='mean')
 
-    print(f'losses in train: {losses}')
-    print(f'symm_loss in train: {symm_loss}')
-
     sum_loss = 0.
     t = tqdm.tqdm(enumerate(loader),total=total/batch_size)
     for i,data in t:
@@ -103,11 +100,11 @@ def train(model, optimizer, loader, total, batch_size, predict_flow, lam1, lam2,
             batch_loss = lam1*loss1 + lam2*loss2
         elif symm_loss is not None:
             batch_output = model(data)
-            if symm_loss == losses.symm_loss_1:
+            if symm_loss == loss_ftns.symm_loss_1:
                 # loss = mse(y, pred) + mse(emd1, emd2)
                 batch_output, emd_1, emd_2 = batch_output
                 batch_loss = symm_loss(batch_output, data.y, emd_1, emd_2)
-            if symm_loss == losses.symm_loss_2:
+            if symm_loss == loss_ftns.symm_loss_2:
                 # loss = mse(y, pred) + lam * pred^2
                 batch_output, _, _ = batch_output
                 batch_loss = symm_loss(batch_output, data.y, symm_lam if symm_lam is not None else 0.001)
@@ -246,7 +243,7 @@ if __name__ == "__main__":
 
     # get appropriate loss function if needed
     if args.symm_loss is not None:
-        symm_loss = getattr(losses, args.symm_loss)
+        symm_loss = getattr(loss_ftns, args.symm_loss)
 
     # load data
     logging.debug("Loading dataset...")
