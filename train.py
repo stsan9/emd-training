@@ -16,7 +16,7 @@ import losses
 
 from torch_scatter import scatter_add
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
-from process_util import remove_dupes
+from process_util import remove_dupes, pair_dupes
 from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 from torch.utils.data import random_split
 
@@ -187,10 +187,11 @@ if __name__ == "__main__":
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
     parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
     parser.add_argument("--predict-flow", action="store_true", help="predict edge flow instead of emdval", required=False)
-    parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
+    parser.add_argument("--remove-dupes", action="store_true", help="remove data that had the same jet pair in different order (leave one ver)", required=False, default=False)
+    parser.add_argument("--pair-dupes", action="store_true", help="pair data that use the same jet pair", required=False, default=True)
     parser.add_argument("--lhco-back", action="store_true", help="Start from tail end of lhco data to get unused dataset", required=False)
     parser.add_argument("--eval-only", action="store_true", help="Only perform evaluation on model (using whole input dir)", required=False)
-    parser.add_argument("--eval-standard", action="store_true", help="Only perform evaluation on model (using test set from og run)", required=False)
+    parser.add_argument("--eval-standard", action="store_true", help="Only perform evaluation on model (using one-tenth of input dir)", required=False)
     parser.add_argument("--lam1", type=float, help="lambda1 for EMD loss term", default=1, required=False)
     parser.add_argument("--lam2", type=float, help="lambda2 for fij loss term", default=100, required=False)
     args = parser.parse_args()
@@ -251,8 +252,10 @@ if __name__ == "__main__":
     bag = []
     for g in gdata:
         bag += g
-    if args.remove_dupes or args.model == 'SymmetricDDEdgeNet':
+    if args.remove_dupes:
         bag = remove_dupes(bag)
+    elif args.pair_dupes:
+        bag = pair_dupes(bag)
     if not args.eval_only:
         random.Random(0).shuffle(bag)
     logging.debug("Shuffled.")
@@ -273,7 +276,7 @@ if __name__ == "__main__":
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
 
-        if args.eval_standard:
+        if not args.eval_standard:
             # train loop
             n_epochs = args.n_epochs
             patience = args.patience
