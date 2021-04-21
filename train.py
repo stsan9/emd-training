@@ -202,6 +202,8 @@ if __name__ == "__main__":
     # basic checks
     if args.eval_standard and args.eval_only:
         exit("--eval-standard and --eval-only args both true")
+    if args.model == 'SymmetricDDEdgeNet' and args.symm_loss is None:
+        exit("Specify args.symm_loss when using symmetric network")
     if (args.symm_loss is not loss_ftns.symm_loss_2) and (args.symm_lam is not None):
         exit("--symm-lam is for use with symm_loss_2")
     if args.remove_dupes and args.pair_dupes:
