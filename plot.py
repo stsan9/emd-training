@@ -1,3 +1,17 @@
+"""
+File: plot.py
+Plot either input distributions or graphs of emd-network output
+
+Example (visualize model output):
+python plot.py --plot-nn-eval \
+    --model "SymmetricDDEdgeNet" \
+    --data-dir "/energyflowvol/eval_lhco_data_150" \
+    --save-dir "/energyflowvol/symm_model_new_loss_1k" \
+    --model-dir "/energyflowvol/symmDD_lhco_model_1k_new_loss" \
+    --n-jets 150 \
+    --n-events-merge 500 \
+    --remove-dupes
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -35,24 +49,6 @@ def get_x_input(gdata):
     eta = torch.cat(eta)
     phi = torch.cat(phi)
     return (pt, "pt"), (eta, "eta"), (phi, "phi")
-
-@torch.no_grad()
-def test(model,loader,total,batch_size):
-    model.eval()
-    
-    mse = nn.MSELoss(reduction='mean')
-
-    sum_loss = 0.
-    t = tqdm.tqdm(enumerate(loader),total=total/batch_size)
-    for i,data in t:
-        data = data.to(device)
-        batch_output = model(data)
-        batch_loss_item = mse(batch_output, data.y).item()
-        sum_loss += batch_loss_item
-        t.set_description("loss = %.5f" % (batch_loss_item))
-        t.refresh() # to show immediately the update
-
-    return sum_loss/(i+1)
 
 def eval_nn(model, test_dataset, model_fname, save_dir):
     batch_size=100
@@ -114,13 +110,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--plt-input", action='store_true', help="plot pt eta phi", default=False, required=False)
     parser.add_argument("--plt-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet', 'DeeperDynamicEdgeNet'], 
-                        help="Model name", required=False, default='DeeperDynamicEdgeNet')
-    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=False)
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
+                        help="Model name", required=True)
     parser.add_argument("--data-dir", type=str, help="location of dataset", default="~/.energyflow/datasets", required=True)
     parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
-    parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
-    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
+    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=False)
+    parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=150)
+    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=500)
     parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
     args = parser.parse_args()
 
@@ -134,8 +131,10 @@ if __name__ == "__main__":
             make_hist(data.numpy(), label, args.save_dir)
 
     if args.plt_nn_eval:
+        if args.model_dir is None:
+            exit("No args.model-dir not specified")
         # load in model
-        input_dim = 3
+        input_dim = 4
         big_dim = 32
         bigger_dim = 128
         global_dim = 2
