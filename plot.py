@@ -127,13 +127,13 @@ if __name__ == "__main__":
     Path(args.save_dir).mkdir(exist_ok=True) # make a folder for these graphs
     gdata = GraphDataset(root=args.data_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge)
 
-    if args.plt_input:
+    if args.plot_input:
         x_input = get_x_input(gdata)
         for d in x_input:
             data = d[0]; label = d[1]
             make_hist(data.numpy(), label, args.save_dir)
 
-    if args.plt_nn_eval:
+    if args.plot_nn_eval:
         if args.model_dir is None:
             exit("No args.model-dir not specified")
         # load in model
