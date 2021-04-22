@@ -148,7 +148,7 @@ if __name__ == "__main__":
         for g in gdata:
             data += g
         if args.remove_dupes:
-            data = remove_dupes(bag)
+            data = remove_dupes(data)
 
         # load in model
         input_dim = 4
