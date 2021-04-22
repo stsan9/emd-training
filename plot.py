@@ -180,4 +180,4 @@ if __name__ == "__main__":
         preds = np.concatenate(preds)   
 
         # plot results
-        make_plots(preds, ys, model_fname, args.save_dir)
+        make_plots(preds, ys, model_fname, eval_dir)
