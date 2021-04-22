@@ -91,13 +91,13 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
 
     fig, ax = plt.subplots(figsize =(5, 5)) 
     plt.hist(diffs, bins=np.linspace(-200, 200, 101))
-    ax.set_xlabel('EMD diff. [GeV]')  
+    ax.set_xlabel(f'EMD diff. [GeV], std: {"{:.3e}".format(np.std(diffs))}, mean: {"{:.3e}".format(np.mean(diffs))}')  
     fig.savefig(osp.join(save_dir,model_fname+'_EMD_diff.pdf'))
     fig.savefig(osp.join(save_dir,model_fname+'_EMD_diff.png'))
 
     fig, ax = plt.subplots(figsize =(5, 5)) 
     plt.hist(rel_diffs, bins=np.linspace(-1, 1, 101))
-    ax.set_xlabel('EMD rel. diff.')  
+    ax.set_xlabel(f'EMD rel. diff., std: {"{:.3e}".format(np.std(rel_diffs))}, mean: {"{:.3e}".format(np.mean(rel_diffs))}')  
     fig.savefig(osp.join(save_dir,model_fname+'_EMD_rel_diff.pdf'))
     fig.savefig(osp.join(save_dir,model_fname+'_EMD_rel_diff.png'))
 
