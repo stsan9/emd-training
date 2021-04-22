@@ -72,6 +72,9 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
     preds = np.concatenate(preds)   
     diffs = (preds-ys)
     rel_diffs = diffs[ys>0]/ys[ys>0]
+
+    # largest y-value rounded to nearest 100
+    max_range = round(np.max(ys),-2)
     
     # plot figures
     plt.rcParams['figure.figsize'] = (4,4)
@@ -79,8 +82,8 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
     plt.rcParams['font.family'] = 'serif'
 
     fig, ax = plt.subplots(figsize =(5, 5)) 
-    plt.hist(ys, bins=np.linspace(0, 300, 101),label='True', alpha=0.5)
-    plt.hist(preds, bins=np.linspace(0, 300, 101),label = 'Pred.', alpha=0.5)
+    plt.hist(ys, bins=np.linspace(0, max_range , 101),label='True', alpha=0.5)
+    plt.hist(preds, bins=np.linspace(0, max_range, 101),label = 'Pred.', alpha=0.5)
     plt.legend()
     ax.set_xlabel('EMD [GeV]') 
     fig.savefig(osp.join(save_dir,model_fname+'_EMD.pdf'))
@@ -99,8 +102,8 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
     fig.savefig(osp.join(save_dir,model_fname+'_EMD_rel_diff.png'))
 
     fig, ax = plt.subplots(figsize =(5, 5)) 
-    x_bins = np.linspace(0, 300, 101)
-    y_bins = np.linspace(0, 300, 101)
+    x_bins = np.linspace(0, max_range, 101)
+    y_bins = np.linspace(0, max_range, 101)
     plt.hist2d(ys, preds, bins=[x_bins,y_bins])
     ax.set_xlabel('True EMD [GeV]')  
     ax.set_ylabel('Pred. EMD [GeV]')
