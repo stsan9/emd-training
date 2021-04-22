@@ -13,15 +13,17 @@ python plot.py --plot-nn-eval \
     --remove-dupes
 """
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
 import os.path as osp
-from graph_data import GraphDataset, ONE_HUNDRED_GEV
-from pathlib import Path
-from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
-from torch.utils.data import random_split
+import numpy as np
 import models
+import torch
+import math
 import tqdm
+
+from pathlib import Path
+from torch.utils.data import random_split
+from graph_data import GraphDataset, ONE_HUNDRED_GEV
+from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
 
 def make_hist(data, label, save_dir):
     plt.figure(figsize=(6,4.4))
