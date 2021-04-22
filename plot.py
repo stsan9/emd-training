@@ -15,15 +15,17 @@ python plot.py --plot-nn-eval \
 import matplotlib.pyplot as plt
 import os.path as osp
 import numpy as np
-import models
 import torch
 import math
 import tqdm
-
 from pathlib import Path
 from torch.utils.data import random_split
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
 from torch_geometric.data import Data, DataLoader
+
+# personal code
+import models
+from process_util import remove_dupes
 
 def make_hist(data, label, save_dir):
     plt.figure(figsize=(6,4.4))
@@ -138,6 +140,8 @@ if __name__ == "__main__":
             make_hist(data.numpy(), label, args.save_dir)
 
     if args.plot_nn_eval:
+        if args.model_dir is None:
+            exit("No args.model-dir not specified")
 
         # load all data into memory at once
         data = []
@@ -146,8 +150,6 @@ if __name__ == "__main__":
         if args.remove_dupes:
             data = remove_dupes(bag)
 
-        if args.model_dir is None:
-            exit("No args.model-dir not specified")
         # load in model
         input_dim = 4
         big_dim = 32
