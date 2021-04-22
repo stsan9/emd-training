@@ -23,7 +23,7 @@ import tqdm
 from pathlib import Path
 from torch.utils.data import random_split
 from graph_data import GraphDataset, ONE_HUNDRED_GEV
-from torch_geometric.data import Data, DataLoader, DataListLoader, Batch
+from torch_geometric.data import Data, DataLoader
 
 def make_hist(data, label, save_dir):
     plt.figure(figsize=(6,4.4))
@@ -55,7 +55,6 @@ def get_x_input(gdata):
 def eval_nn(model, test_dataset, model_fname, save_dir):
     batch_size=100
     test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-    test_loader.collate_fn = collate
     test_samples = len(test_dataset)
 
     # evaluate model
@@ -139,6 +138,14 @@ if __name__ == "__main__":
             make_hist(data.numpy(), label, args.save_dir)
 
     if args.plot_nn_eval:
+
+        # load all data into memory at once
+        data = []
+        for g in gdata:
+            data += g
+        if args.remove_dupes:
+            data = remove_dupes(bag)
+
         if args.model_dir is None:
             exit("No args.model-dir not specified")
         # load in model
@@ -147,7 +154,7 @@ if __name__ == "__main__":
         bigger_dim = 128
         global_dim = 2
         output_dim = 1
-        fulllen = len(gdata)
+        fulllen = len(data)
         tv_frac = 0.10
         tv_num = math.ceil(fulllen*tv_frac)
         device = 'cuda:0'
@@ -165,10 +172,7 @@ if __name__ == "__main__":
             exit("No model")
         
         # get test dataset
-        def collate(items):
-            l = sum(items, [])
-            return Batch.from_data_list(l)
-        _, _, test_dataset = random_split(gdata, [fulllen-2*tv_num,tv_num,tv_num])
+        _, _, test_dataset = random_split(data, [fulllen-2*tv_num,tv_num,tv_num])
         
         # save folder
         eval_folder = 'eval'
