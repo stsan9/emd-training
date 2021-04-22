@@ -54,31 +54,14 @@ def get_x_input(gdata):
     phi = torch.cat(phi)
     return (pt, "pt"), (eta, "eta"), (phi, "phi")
 
-def eval_nn(model, test_dataset, model_fname, save_dir):
-    batch_size=100
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
-    test_samples = len(test_dataset)
-
-    # evaluate model
-    ys = []
-    preds = []
-    diffs = []
-    t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
-    for i, data in t:
-        data.to(device)
-        out = model(data)
-        if model_fname == "SymmetricDDEdgeNet":
-            out = out[0]    # toss unecessary terms
-        ys.append(data.y.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
-        preds.append(out.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
-    ys = np.concatenate(ys)   
-    preds = np.concatenate(preds)   
-    diffs = (preds-ys)
-    rel_diffs = diffs[ys>0]/ys[ys>0]
+def make_plots(preds, ys, model_fname, save_dir):
 
     # largest y-value rounded to nearest 100
     max_range = round(np.max(ys),-2)
     
+    diffs = (preds-ys)
+    rel_diffs = diffs[ys>0]/ys[ys>0]
+
     # plot figures
     plt.rcParams['figure.figsize'] = (4,4)
     plt.rcParams['figure.dpi'] = 120
@@ -144,11 +127,11 @@ if __name__ == "__main__":
             exit("No args.model-dir not specified")
 
         # load all data into memory at once
-        data = []
+        test_dataset = []
         for g in gdata:
-            data += g
+            test_dataset += g
         if args.remove_dupes:
-            data = remove_dupes(data)
+            test_dataset = remove_dupes(test_dataset)
 
         # load in model
         input_dim = 4
@@ -156,9 +139,7 @@ if __name__ == "__main__":
         bigger_dim = 128
         global_dim = 2
         output_dim = 1
-        fulllen = len(data)
-        tv_frac = 0.10
-        tv_num = math.ceil(fulllen*tv_frac)
+        batch_size=100
         device = 'cuda:0'
         model_class = getattr(models, args.model)
         model = model_class(input_dim=input_dim, big_dim=big_dim, bigger_dim=bigger_dim, 
@@ -174,7 +155,8 @@ if __name__ == "__main__":
             exit("No model")
         
         # get test dataset
-        _, _, test_dataset = random_split(data, [fulllen-2*tv_num,tv_num,tv_num])
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True, shuffle=False)
+        test_samples = len(test_dataset)
         
         # save folder
         eval_folder = 'eval'
@@ -182,4 +164,20 @@ if __name__ == "__main__":
             eval_folder += '_dupes'
         eval_dir = osp.join(args.save_dir, eval_folder)
 
-        eval_nn(model, test_dataset, model_fname, args.save_dir)
+        # evaluate model
+        ys = []
+        preds = []
+        diffs = []
+        t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
+        for i, data in t:
+            data.to(device)
+            out = model(data)
+            if model_fname == "SymmetricDDEdgeNet":
+                out = out[0]    # toss unecessary terms
+            ys.append(data.y.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
+            preds.append(out.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
+        ys = np.concatenate(ys)   
+        preds = np.concatenate(preds)   
+
+        # plot results
+        make_plots(preds, ys, model_fname, args.save_dir)
