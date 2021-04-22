@@ -150,7 +150,6 @@ if __name__ == "__main__":
         fulllen = len(gdata)
         tv_frac = 0.10
         tv_num = math.ceil(fulllen*tv_frac)
-        batch_size = args.batch_size
         device = 'cuda:0'
         model_class = getattr(models, args.model)
         model = model_class(input_dim=input_dim, big_dim=big_dim, bigger_dim=bigger_dim, 
