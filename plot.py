@@ -163,6 +163,7 @@ if __name__ == "__main__":
         if not args.remove_dupes:
             eval_folder += '_dupes'
         eval_dir = osp.join(args.save_dir, eval_folder)
+        Path(eval_dir).mkdir(exist_ok=True)
 
         # evaluate model
         ys = []
