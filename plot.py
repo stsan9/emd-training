@@ -63,8 +63,11 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
     t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
     for i, data in t:
         data.to(device)
+        out = model(data)
+        if model_fname == "SymmetricDDEdgeNet":
+            out = out[0]    # toss unecessary terms
         ys.append(data.y.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
-        preds.append(model(data).cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
+        preds.append(out.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
     ys = np.concatenate(ys)   
     preds = np.concatenate(preds)   
     diffs = (preds-ys)
@@ -108,8 +111,8 @@ def eval_nn(model, test_dataset, model_fname, save_dir):
 if __name__ == "__main__":
     import argparse;
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plt-input", action='store_true', help="plot pt eta phi", default=False, required=False)
-    parser.add_argument("--plt-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
+    parser.add_argument("--plot-input", action='store_true', help="plot pt eta phi", default=False, required=False)
+    parser.add_argument("--plot-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
                                             'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
                         help="Model name", required=True)
