@@ -208,13 +208,13 @@ if __name__ == "__main__":
     n_epochs = args.n_epochs
     patience = args.patience
     stale_epochs = 0
-    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, loss_obj)
+    best_valid_loss = test(model, valid_loader, valid_samples, batch_size, loss_ftn_obj)
     losses = []
     val_losses = []
     for epoch in range(0, n_epochs):
-        loss = train(model, optimizer, train_loader, train_samples, batch_size, loss_obj)
+        loss = train(model, optimizer, train_loader, train_samples, batch_size, loss_ftn_obj)
         losses.append(loss)
-        valid_loss = test(model, valid_loader, valid_samples, batch_size, loss_obj)
+        valid_loss = test(model, valid_loader, valid_samples, batch_size, loss_ftn_obj)
         val_losses.append(valid_loss)
         print('Epoch: {:02d}, Training Loss:   {:.4f}'.format(epoch, loss))
         print('               Validation Loss: {:.4f}'.format(valid_loss))
