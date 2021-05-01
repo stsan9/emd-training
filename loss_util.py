@@ -23,7 +23,8 @@ class LossFunction:
         if lossname == 'mse':
             loss = nn.MSELoss(reduction='mean')
         else:
-            self.loss_ftn(self, lossname)
+            loss = getattr(self, lossname)
+        self.loss_ftn = loss
         self.name(lossname)
         self.lam1 = lam1
         self.lam2 = lam2
