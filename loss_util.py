@@ -25,7 +25,7 @@ class LossFunction:
         else:
             loss = getattr(self, lossname)
         self.loss_ftn = loss
-        self.name(lossname)
+        self.name = lossname
         self.lam1 = lam1
         self.lam2 = lam2
 
