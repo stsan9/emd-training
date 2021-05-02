@@ -6,7 +6,7 @@ Example (visualize model output):
 python plot.py --plot-nn-eval \
     --model "SymmetricDDEdgeNet" \
     --data-dir "/energyflowvol/eval_lhco_data_150" \
-    --save-dir "/energyflowvol/symm_model_new_loss_1k" \
+    --save-dir "/energyflowvol/figures/symmDD_lhco_model_new_loss_1k" \
     --model-dir "/energyflowvol/symmDD_lhco_model_1k_new_loss" \
     --n-jets 150 \
     --n-events-merge 500 \
@@ -170,6 +170,7 @@ if __name__ == "__main__":
         preds = []
         diffs = []
         t = tqdm.tqdm(enumerate(test_loader),total=test_samples/batch_size)
+        model.eval()
         for i, data in t:
             data.to(device)
             out = model(data)
