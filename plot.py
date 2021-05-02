@@ -5,9 +5,9 @@ Plot either input distributions or graphs of emd-network output
 Example (visualize model output):
 python plot.py --plot-nn-eval \
     --model "SymmetricDDEdgeNet" \
-    --data-dir "/energyflowvol/eval_lhco_data_150" \
+    --data-dir "/energyflowvol/data/eval_lhco_data_150" \
     --save-dir "/energyflowvol/figures/symmDD_lhco_model_new_loss_1k" \
-    --model-dir "/energyflowvol/symmDD_lhco_model_1k_new_loss" \
+    --model-dir "/energyflowvol/models/symmDD_lhco_model_1k_new_loss" \
     --n-jets 150 \
     --n-events-merge 500 \
     --remove-dupes
