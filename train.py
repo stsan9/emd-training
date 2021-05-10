@@ -112,7 +112,8 @@ if __name__ == "__main__":
                         default='/energyflowvol/datasets/')
     # model
     parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
-                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet','SymmetricDDEdgeNetSqr','SymmetricDDEdgeNetSpl'], 
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet','SymmetricDDEdgeNetSqr',
+                                            'SymmetricDDEdgeNetSpl','SymmetricDDEdgeNetRel'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     # loss
     parser.add_argument("--loss", choices=['symm_loss_1', 'symm_loss_2', 'mse', 'predict_flow'], help="loss function choice", required=True)
