@@ -228,8 +228,9 @@ class SymmetricDDEdgeNetSpl(nn.Module):
         data_2 = copy.deepcopy(data)
         data_2.x[:,-1] *= -1
 
-        emd_1 = nn.Softplus(self.EdgeNet(data_1))
-        emd_2 = nn.Softplus(self.EdgeNet(data_2))
+        spl = nn.Softplus
+        emd_1 = spl(self.EdgeNet(data_1))
+        emd_2 = spl(self.EdgeNet(data_2))
         loss = (emd_1 + emd_2) / 2
         return loss, emd_1, emd_2
 
@@ -244,7 +245,8 @@ class SymmetricDDEdgeNetRel(nn.Module):
         data_2 = copy.deepcopy(data)
         data_2.x[:,-1] *= -1
 
-        emd_1 = nn.ReLU(self.EdgeNet(data_1))
-        emd_2 = nn.ReLU(self.EdgeNet(data_2))
+        rel = nn.ReLU()
+        emd_1 = rel(self.EdgeNet(data_1))
+        emd_2 = rel(self.EdgeNet(data_2))
         loss = (emd_1 + emd_2) / 2
         return loss, emd_1, emd_2
