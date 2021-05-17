@@ -100,17 +100,27 @@ def make_plots(preds, ys, model_fname, save_dir):
 if __name__ == "__main__":
     import argparse;
     parser = argparse.ArgumentParser()
-    parser.add_argument("--plot-input", action='store_true', help="plot pt eta phi", default=False, required=False)
-    parser.add_argument("--plot-nn-eval", action='store_true', help="plot graphs for evaluating emd nn's", default=False, required=False)
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
-                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
+    parser.add_argument("--plot-input", action='store_true', help="plot pt eta phi",
+                        default=False, required=False)
+    parser.add_argument("--plot-nn-eval", action='store_true',
+                        help="plot graphs for evaluating emd nn's", default=False, required=False)
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet',
+                                            'DeeperDynamicEdgeNetPredictFlow',
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow',
+                                            'SymmetricDDEdgeNet','SymmetricDDEdgeNetSqr',
+                                            'SymmetricDDEdgeNetSpl','SymmetricDDEdgeNetRel'], 
                         help="Model name", required=True)
-    parser.add_argument("--data-dir", type=str, help="location of dataset", default="~/.energyflow/datasets", required=True)
-    parser.add_argument("--save-dir", type=str, help="where to save figures", default="/energyflowvol/figures", required=True)
-    parser.add_argument("--model-dir", type=str, help="path to folder with model", default="/energyflowvol/models2/", required=False)
+    parser.add_argument("--data-dir", type=str, help="location of dataset",
+                        default="~/.energyflow/datasets", required=True)
+    parser.add_argument("--save-dir", type=str, help="where to save figures",
+                        default="/energyflowvol/figures", required=True)
+    parser.add_argument("--model-dir", type=str, help="path to folder with model",
+                        default="/energyflowvol/models2/", required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=150)
-    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=500)
-    parser.add_argument("--remove-dupes", action="store_true", help="remove dupes in data with different jet ordering", required=False)
+    parser.add_argument("--n-events-merge", type=int, help="number of events to merge",
+                        required=False, default=500)
+    parser.add_argument("--remove-dupes", action="store_true",
+                        help="remove dupes in data with different jet ordering", required=False)
     args = parser.parse_args()
 
     Path(args.save_dir).mkdir(exist_ok=True) # make a folder for these graphs
@@ -174,7 +184,7 @@ if __name__ == "__main__":
         for i, data in t:
             data.to(device)
             out = model(data)
-            if model_fname == "SymmetricDDEdgeNet":
+            if model_fname[:-3] == "SymmetricDDEdgeNet":
                 out = out[0]    # toss unecessary terms
             ys.append(data.y.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
             preds.append(out.cpu().detach().numpy().squeeze()*ONE_HUNDRED_GEV)
