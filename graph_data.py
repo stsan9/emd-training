@@ -1,22 +1,28 @@
+import os
 import os.path as osp
 import torch
-from torch_geometric.data import Dataset, Data
 import itertools
 import tables
 import numpy as np
 import energyflow as ef
 import glob
+import logging
+
+from torch_geometric.data import Dataset, Data
 from process_util import jet_particles
+from natsort import natsorted
+from sys import exit
 
 ONE_HUNDRED_GEV = 100.0
 
 class GraphDataset(Dataset):
-    def __init__(self, root, transform=None, pre_transform=None, 
-                 n_jets=1000, n_events_merge=100, n_events=1000, lhco=False):
+    def __init__(self, root, transform=None, pre_transform=None, n_jets=1000,
+                 n_events_merge=100, n_events=1000, lhco=False, lhco_back=False):
         self.n_jets = n_jets
         self.n_events_merge = n_events_merge
         self.n_events = n_events
         self.lhco = lhco
+        self.lhco_back = lhco_back
         super(GraphDataset, self).__init__(root, transform, pre_transform) 
 
 
@@ -32,7 +38,7 @@ class GraphDataset(Dataset):
         proc_list = glob.glob(osp.join(self.processed_dir, 'data_*.pt'))
         n_files = int(self.n_jets*self.n_jets/self.n_events_merge)
         return_list = list(map(osp.basename, proc_list))[:n_files]
-        return return_list
+        return natsorted(return_list)
 
     def __len__(self):
         return len(self.processed_file_names)
@@ -46,16 +52,18 @@ class GraphDataset(Dataset):
         R = 0.4
         for raw_path in self.raw_paths:
             # load jet-particles dataset
-            if self.lhco:
+            if self.lhco or self.lhco_back:
                 print("Loading LHCO Dataset")
-                X = jet_particles(raw_path, self.n_events)
+                X = jet_particles(raw_path, self.n_events, self.lhco_back)
             else:
                 print("Loading QG Dataset")
                 X, _ = ef.qg_jets.load(self.n_jets, pad=False, cache_dir=self.root+'/raw')
+            
+            # clean and store list of jets as particles (pt, eta, phi)
             Js = []
             jet_ctr = 0
             for x in X: 
-                if not self.lhco:
+                if not (self.lhco or self.lhco_back):
                     # ignore padded particles and removed particle id information
                     x = x[x[:,0] > 0,:3]
                 # center jet according to pt-centroid
@@ -90,7 +98,6 @@ class GraphDataset(Dataset):
             jiNorm[:,3] = -1*np.ones((Js[i].shape[0]))
             jjNorm[:,3] = np.ones((Js[j].shape[0]))
             jetpair = np.concatenate([jiNorm, jjNorm], axis=0)
-            # print(jetpair.shape)
             nparticles_i = len(Js[i])
             nparticles_j = len(Js[j])
             pairs = [[m, n] for (m, n) in itertools.product(range(0,nparticles_i),range(nparticles_i,nparticles_i+nparticles_j))]
@@ -117,3 +124,25 @@ class GraphDataset(Dataset):
     def get(self, idx):
         data = torch.load(osp.join(self.processed_dir, self.processed_file_names[idx]))
         return data
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input-dir", type=str, help="Directory to process data", required=False,
+                        default='/energyflowvol/datasets/')
+    parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
+    parser.add_argument("--lhco-back", action="store_true", help="Start from tail end of lhco data to get unused dataset", required=False)
+    parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
+    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
+    args = parser.parse_args()
+
+    os.makedirs(args.input_dir,exist_ok=True)
+
+    # log arguments
+    logging.basicConfig(filename=osp.join(args.input_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
+    for arg, value in sorted(vars(args).items()):
+            logging.info("Argument %s: %r", arg, value)
+
+    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco, lhco_back=args.lhco_back)
+
+    print("Done")

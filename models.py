@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,7 +7,7 @@ from torch_geometric.nn import DynamicEdgeConv, EdgeConv, global_mean_pool
 from torch_scatter import scatter_mean
 
 class EdgeNet(nn.Module):
-    def __init__(self, input_dim=3, big_dim=32, bigger_dim=128, global_dim=2, output_dim=1, aggr='mean'):
+    def __init__(self, input_dim=4, big_dim=32, bigger_dim=128, global_dim=2, output_dim=1, aggr='mean'):
         super(EdgeNet, self).__init__()
         convnn = nn.Sequential(nn.Linear(2*(input_dim), big_dim),
                                nn.ReLU(),
@@ -29,15 +30,15 @@ class EdgeNet(nn.Module):
         self.conv = EdgeConv(nn=convnn,aggr=aggr)
 
     def forward(self, data):
-        data.x = self.batchnorm(data.x)
-        data.x = self.conv(data.x,data.edge_index)
+        x = self.batchnorm(data.x)
+        x = self.conv(x,data.edge_index)
         u1 = self.batchnormglobal(data.u)
-        u2 = scatter_mean(data.x, data.batch, dim=0)
+        u2 = scatter_mean(x, data.batch, dim=0)
         data.u = torch.cat([u1, u2],dim=-1)
         return self.outnn(data.u)    
         
 class DynamicEdgeNet(nn.Module):
-    def __init__(self, input_dim=3, big_dim=128, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
+    def __init__(self, input_dim=4, big_dim=128, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
         super(DynamicEdgeNet, self).__init__()
         convnn = nn.Sequential(nn.Linear(2*(input_dim), big_dim),
                                nn.ReLU(),
@@ -60,15 +61,15 @@ class DynamicEdgeNet(nn.Module):
         self.conv = DynamicEdgeConv(nn=convnn,aggr=aggr, k=k)
 
     def forward(self, data):
-        data.x = self.batchnorm(data.x)
-        data.x = self.conv(data.x, data.batch)
+        x = self.batchnorm(data.x)
+        x = self.conv(x, data.batch)
         u1 = self.batchnormglobal(data.u)
-        u2 = scatter_mean(data.x, data.batch, dim=0)
+        u2 = scatter_mean(x, data.batch, dim=0)
         data.u = torch.cat([u1, u2],dim=-1)
         return self.outnn(data.u)
     
 class DeeperDynamicEdgeNet(nn.Module):
-    def __init__(self, input_dim=3, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
+    def __init__(self, input_dim=4, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
         super(DeeperDynamicEdgeNet, self).__init__()
         convnn = nn.Sequential(nn.Linear(2*(input_dim), big_dim),
                                nn.BatchNorm1d(big_dim),
@@ -113,19 +114,19 @@ class DeeperDynamicEdgeNet(nn.Module):
     def forward(self, data):
         x1 = self.batchnorm(data.x)        
         x2 = self.conv(data.x, data.batch)        
-        data.x = torch.cat([x1, x2],dim=-1)
-        x2 = self.conv2(data.x, data.batch)          
-        data.x = torch.cat([x1, x2],dim=-1)
-        x2 = self.conv3(data.x, data.batch)
-        data.x = torch.cat([x1, x2],dim=-1)        
+        x = torch.cat([x1, x2],dim=-1)
+        x2 = self.conv2(x, data.batch)          
+        x = torch.cat([x1, x2],dim=-1)
+        x2 = self.conv3(x, data.batch)
+        x = torch.cat([x1, x2],dim=-1)        
         u1 = self.batchnormglobal(data.u)
-        u2 = scatter_mean(data.x, data.batch, dim=0)
+        u2 = scatter_mean(x, data.batch, dim=0)
         data.u = torch.cat([u1, u2],dim=-1)       
         return self.outnn(data.u)
 
 
 class DeeperDynamicEdgeNetPredictFlow(nn.Module):
-    def __init__(self, input_dim=3, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
+    def __init__(self, input_dim=4, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
         super(DeeperDynamicEdgeNetPredictFlow, self).__init__()
         convnn = nn.Sequential(nn.Linear(2*(input_dim), big_dim),
                                nn.BatchNorm1d(big_dim),
@@ -175,12 +176,27 @@ class DeeperDynamicEdgeNetPredictFlow(nn.Module):
     def forward(self, data):
         x1 = self.batchnorm(data.x)        
         x2 = self.conv(data.x, data.batch)        
-        data.x = torch.cat([x1, x2],dim=-1)
-        x2 = self.conv2(data.x, data.batch)          
-        data.x = torch.cat([x1, x2],dim=-1)
-        x2 = self.conv3(data.x, data.batch)
-        data.x = torch.cat([x1, x2],dim=-1)        
+        x = torch.cat([x1, x2],dim=-1)
+        x2 = self.conv2(x, data.batch)          
+        x = torch.cat([x1, x2],dim=-1)
+        x2 = self.conv3(x, data.batch)
+        x = torch.cat([x1, x2],dim=-1)        
         row,col = data.edge_index        
-        return self.outnn(torch.cat([data.x[row],data.x[col]],dim=-1))#.squeeze(-1)
+        return self.outnn(torch.cat([x[row],x[col]],dim=-1))#.squeeze(-1)
 
 
+class SymmetricDDEdgeNet(nn.Module):
+    def __init__(self, input_dim=4, big_dim=32, bigger_dim=256, global_dim=2, output_dim=1, k=16, aggr='mean'):
+        super(SymmetricDDEdgeNet, self).__init__()
+        self.EdgeNet = DeeperDynamicEdgeNet(input_dim, big_dim, bigger_dim, global_dim, output_dim, k, aggr) 
+
+    def forward(self, data):
+        # dual copies with different orderings
+        data_1 = data
+        data_2 = copy.deepcopy(data)
+        data_2.x[:,-1] *= -1
+
+        emd_1 = self.EdgeNet(data_1)
+        emd_2 = self.EdgeNet(data_2)
+        loss = (emd_1 + emd_2) / 2
+        return loss, emd_1, emd_2
