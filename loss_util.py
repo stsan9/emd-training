@@ -28,18 +28,20 @@ class LossFunction:
         self.name = lossname
         self.lam1 = lam1
         self.lam2 = lam2
+        self.mse = nn.MSELoss(reduction='mean')
 
     def symm_loss_1(self, preds, ys, emd_1, emd_2):
-        mse = nn.MSELoss(reduction='mean')
+        mse = self.mse
         batch_loss = mse(ys, preds) + mse(emd_1, emd_2)
         return batch_loss
 
     def symm_loss_2(self, preds, ys):
-        mse = nn.MSELoss(reduction='mean')
+        mse = self.mse
         batch_loss = mse(ys, preds) + self.lam1 * torch.mean(torch.pow(preds, 2))
         return batch_loss
     
     def predict_flow(self, data, preds):
+        mse = self.mse
         loss1 = mse(get_emd(data.x, data.edge_index, preds.squeeze(), data.u, data.batch).unsqueeze(-1), data.y)
         loss2 = mse(preds, data.edge_y)
         batch_loss = lam1*loss1 + lam2*loss2
