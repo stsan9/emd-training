@@ -106,28 +106,41 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # directories
-    parser.add_argument("--output-dir", type=str, help="Output directory for models and plots.", required=False, 
+    parser.add_argument("--output-dir", type=str, help="Output directory for models and plots.",
+                        required=False, 
                         default='models2/')
     parser.add_argument("--input-dir", type=str, help="Input directory for datasets.", required=False,
                         default='/energyflowvol/datasets/')
     # model
-    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet','DeeperDynamicEdgeNetPredictFlow',
-                                            'DeeperDynamicEdgeNetPredictEMDFromFlow','SymmetricDDEdgeNet'], 
+    parser.add_argument("--model", choices=['EdgeNet', 'DynamicEdgeNet','DeeperDynamicEdgeNet',
+                                            'DeeperDynamicEdgeNetPredictFlow',
+                                            'DeeperDynamicEdgeNetPredictEMDFromFlow',
+                                            'SymmetricDDEdgeNet','SymmetricDDEdgeNetSqr',
+                                            'SymmetricDDEdgeNetSpl','SymmetricDDEdgeNetRel'], 
                         help="Model name", required=False, default='DeeperDynamicEdgeNet')
     # loss
-    parser.add_argument("--loss", choices=['symm_loss_1', 'symm_loss_2', 'mse', 'predict_flow'], help="loss function choice", required=True)
-    parser.add_argument("--lam1", type=float, help="lambda1 for predict_flow (emd term) or symm_loss_2", default=1, required=False)
-    parser.add_argument("--lam2", type=float, help="lambda2 for predict flow (fij loss term)", default=100, required=False)
+    parser.add_argument("--loss", choices=['symm_loss_1', 'symm_loss_2', 'mse', 'predict_flow'],
+                        help="loss function choice", required=True)
+    parser.add_argument("--lam1", type=float, help="lambda1 for predict_flow (emd term) or symm_loss_2",
+                        default=1, required=False)
+    parser.add_argument("--lam2", type=float, help="lambda2 for predict flow (fij loss term)",
+                        default=100, required=False)
     # dataset
-    parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)", default=False, required=False)
+    parser.add_argument("--lhco", action='store_true', help="Using lhco dataset (diff processing)",
+                        default=False, required=False)
     parser.add_argument("--n-jets", type=int, help="number of jets", required=False, default=100)
-    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False, default=1)
-    parser.add_argument("--remove-dupes", action="store_true", help="remove data that had the same jet pair in different order (leave one ver)", required=False, default=False)
-    parser.add_argument("--pair-dupes", action="store_true", help="pair data that use the same jet pair", required=False, default=False)
+    parser.add_argument("--n-events-merge", type=int, help="number of events to merge", required=False,
+                        default=1)
+    parser.add_argument("--remove-dupes", action="store_true",
+                        help="remove data that had the same jet pair in different order (leave one ver)",
+                        required=False, default=False)
+    parser.add_argument("--pair-dupes", action="store_true", help="pair data that use the same jet pair",
+                        required=False, default=False)
     # hyperparams
     parser.add_argument("--batch-size", type=int, help="batch size", required=False, default=100)
     parser.add_argument("--n-epochs", type=int, help="number of epochs", required=False, default=100)
-    parser.add_argument("--patience", type=int, help="patience for early stopping", required=False, default=10)
+    parser.add_argument("--patience", type=int, help="patience for early stopping", required=False,
+                        default=10)
     args = parser.parse_args()
 
     # create output directory
@@ -137,7 +150,10 @@ if __name__ == "__main__":
         exit("can't remove dupes and pair dupes at the same time")
 
     # log arguments
-    logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"), filemode='w', level=logging.DEBUG, format='%(asctime)s | %(levelname)s: %(message)s')
+    logging.basicConfig(filename=osp.join(args.output_dir, "logs.log"),
+                        filemode='w',
+                        level=logging.DEBUG,
+                        format='%(asctime)s | %(levelname)s: %(message)s')
     for arg, value in sorted(vars(args).items()):
             logging.info("Argument %s: %r", arg, value)
 
@@ -170,7 +186,10 @@ if __name__ == "__main__":
 
     # load data
     logging.debug("Loading dataset...")
-    gdata = GraphDataset(root=args.input_dir, n_jets=args.n_jets, n_events_merge=args.n_events_merge, lhco=args.lhco)
+    gdata = GraphDataset(root=args.input_dir,
+                         n_jets=args.n_jets,
+                         n_events_merge=args.n_events_merge,
+                         lhco=args.lhco)
     logging.debug("Dataset loaded.")
 
     # shuffling data and handling pairs
@@ -249,7 +268,7 @@ if __name__ == "__main__":
         else:
             true_emd = data.y
             learn_emd = model(data)
-            if args.model == "SymmetricDDEdgeNet":
+            if args.model[:-3] == "SymmetricDDEdgeNet":
                 learn_emd = learn_emd[0]    # toss unecessary terms
 
         ys.append(true_emd.cpu().numpy().squeeze()*ONE_HUNDRED_GEV)
