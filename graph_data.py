@@ -1,12 +1,12 @@
 import os
-import os.path as osp
-import torch
-import itertools
-import tables
-import numpy as np
-import energyflow as ef
 import glob
+import torch
+import tables
 import logging
+import itertools
+import numpy as np
+import os.path as osp
+import energyflow as ef
 
 from torch_geometric.data import Dataset, Data
 from process_util import jet_particles
@@ -62,7 +62,7 @@ class GraphDataset(Dataset):
             # clean and store list of jets as particles (pt, eta, phi)
             Js = []
             jet_ctr = 0
-            for x in X: 
+            for i, x in enumerate(X): 
                 if not (self.lhco or self.lhco_back):
                     # ignore padded particles and removed particle id information
                     x = x[x[:,0] > 0,:3]
@@ -74,7 +74,16 @@ class GraphDataset(Dataset):
                 # add to list
                 if len(x) == 0: continue
                 Js.append(x)
-                # stop when n_jets stored
+
+                # make slightly similar jets on 10% of data to learn low emd vals
+                if i % 10 == 0:
+                    x = x.clone()
+                    x[:,0] *= np.random.uniform(0.9,1.1)
+                    x[:,1] += np.random.uniform(-0.1,0.1) * x[:1]
+                    x[:,2] += np.random.uniform(-0.1,0.1) * x[:2]
+                    Js.append(x)
+                    jet_ctr += 1
+
                 jet_ctr += 1
                 if jet_ctr == self.n_jets: break
 
