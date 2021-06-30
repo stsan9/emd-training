@@ -77,7 +77,7 @@ class GraphDataset(Dataset):
 
                 # make slightly similar jets on 10% of data to learn low emd vals
                 if i % 10 == 0:
-                    x = x.clone()
+                    x = x.copy()
                     x[:,0] *= np.random.uniform(0.9,1.1)
                     x[:,1] += np.random.uniform(-0.1,0.1) * x[:1]
                     x[:,2] += np.random.uniform(-0.1,0.1) * x[:2]
