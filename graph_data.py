@@ -79,8 +79,8 @@ class GraphDataset(Dataset):
                 if i % 10 == 0:
                     x = x.copy()
                     x[:,0] *= np.random.uniform(0.9,1.1)
-                    x[:,1] += np.random.uniform(-0.1,0.1) * x[:,:1]
-                    x[:,2] += np.random.uniform(-0.1,0.1) * x[:,:2]
+                    x[:,1] += np.random.uniform(-0.1,0.1) * x[:,1]
+                    x[:,2] += np.random.uniform(-0.1,0.1) * x[:,2]
                     Js.append(x)
                     jet_ctr += 1
 
