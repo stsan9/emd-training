@@ -23,7 +23,7 @@ def jet_particles(raw_path, n_events, back):
                 pseudojets_input[j]['eta'] = all_events[i][j*3+1]
                 pseudojets_input[j]['phi'] = all_events[i][j*3+2]
         sequence = cluster(pseudojets_input, R=1.0, p=-1)
-        jets = sequence.inclusive_jets()[:2] # leading 2 jets only
+        jets = sequence.inclusive_jets()
         if len(jets) < 2: continue
         for jet in jets: # for each jet get (px, py, pz, e)
             if jet.pt < 200 or len(jets)<=1: continue
